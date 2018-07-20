@@ -33,6 +33,7 @@
 #include "core/print_string.h"
 #include "drivers/gles2/rasterizer_gles2.h"
 #include "drivers/gles3/rasterizer_gles3.h"
+#include "drivers/vulkan/rasterizer_vulkan.h"
 #include "errno.h"
 #include "key_mapping_x11.h"
 #include "servers/visual/visual_server_raster.h"
@@ -249,7 +250,7 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 		XFree(imvalret);
 	}
 
-/*
+	/*
 	char* windowid = getenv("GODOT_WINDOWID");
 	if (windowid) {
 
@@ -265,52 +266,36 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 	};
 	*/
 
-// maybe contextgl wants to be in charge of creating the window
+	// maybe contextgl wants to be in charge of creating the window
+	//print_line("def videomode "+itos(current_videomode.width)+","+itos(current_videomode.height));
+
+	if (p_video_driver == VIDEO_DRIVER_VULKAN) {
+		print_line("Vulkan, I choose you !");
+		RasterizerVulkan::make_current();
+
+	} else {
 #if defined(OPENGL_ENABLED)
+		ContextGL_X11::ContextType opengl_api_type = ContextGL_X11::GLES_3_0_COMPATIBLE;
 
-	ContextGL_X11::ContextType opengl_api_type = ContextGL_X11::GLES_3_0_COMPATIBLE;
+		bool editor = Engine::get_singleton()->is_editor_hint();
+		bool gl_initialization_error = false;
 
-	if (p_video_driver == VIDEO_DRIVER_GLES2) {
-		opengl_api_type = ContextGL_X11::GLES_2_0_COMPATIBLE;
-	}
+		context_gl = NULL;
+		while (!context_gl) {
+			context_gl = memnew(ContextGL_X11(x11_display, x11_window, current_videomode, opengl_api_type));
 
-	bool editor = Engine::get_singleton()->is_editor_hint();
-	bool gl_initialization_error = false;
+			if (context_gl->initialize() != OK) {
+				memdelete(context_gl);
+				context_gl = NULL;
 
-	context_gl = NULL;
-	while (!context_gl) {
-		context_gl = memnew(ContextGL_X11(x11_display, x11_window, current_videomode, opengl_api_type));
-
-		if (context_gl->initialize() != OK) {
-			memdelete(context_gl);
-			context_gl = NULL;
-
-			if (GLOBAL_GET("rendering/quality/driver/driver_fallback") == "Best" || editor) {
-				if (p_video_driver == VIDEO_DRIVER_GLES2) {
-					gl_initialization_error = true;
-					break;
-				}
-
-				p_video_driver = VIDEO_DRIVER_GLES2;
-				opengl_api_type = ContextGL_X11::GLES_2_0_COMPATIBLE;
-			} else {
-				gl_initialization_error = true;
-				break;
-			}
-		}
-	}
-
-	while (true) {
-		if (opengl_api_type == ContextGL_X11::GLES_3_0_COMPATIBLE) {
-			if (RasterizerGLES3::is_viable() == OK) {
-				RasterizerGLES3::register_config();
-				RasterizerGLES3::make_current();
-				break;
-			} else {
 				if (GLOBAL_GET("rendering/quality/driver/driver_fallback") == "Best" || editor) {
+					if (p_video_driver == VIDEO_DRIVER_GLES2) {
+						gl_initialization_error = true;
+						break;
+					}
+
 					p_video_driver = VIDEO_DRIVER_GLES2;
 					opengl_api_type = ContextGL_X11::GLES_2_0_COMPATIBLE;
-					continue;
 				} else {
 					gl_initialization_error = true;
 					break;
@@ -318,30 +303,50 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 			}
 		}
 
-		if (opengl_api_type == ContextGL_X11::GLES_2_0_COMPATIBLE) {
-			if (RasterizerGLES2::is_viable() == OK) {
-				RasterizerGLES2::register_config();
-				RasterizerGLES2::make_current();
-				break;
-			} else {
-				gl_initialization_error = true;
-				break;
+		while (true) {
+			if (opengl_api_type == ContextGL_X11::GLES_3_0_COMPATIBLE) {
+				if (RasterizerGLES3::is_viable() == OK) {
+					RasterizerGLES3::register_config();
+					RasterizerGLES3::make_current();
+					break;
+				} else {
+					if (GLOBAL_GET("rendering/quality/driver/driver_fallback") == "Best" || editor) {
+						p_video_driver = VIDEO_DRIVER_GLES2;
+						opengl_api_type = ContextGL_X11::GLES_2_0_COMPATIBLE;
+						continue;
+					} else {
+						gl_initialization_error = true;
+						break;
+					}
+				}
+			}
+
+			if (opengl_api_type == ContextGL_X11::GLES_2_0_COMPATIBLE) {
+				if (RasterizerGLES2::is_viable() == OK) {
+					RasterizerGLES2::register_config();
+					RasterizerGLES2::make_current();
+					break;
+				} else {
+					gl_initialization_error = true;
+					break;
+				}
 			}
 		}
-	}
 
-	if (gl_initialization_error) {
-		OS::get_singleton()->alert("Your video card driver does not support any of the supported OpenGL versions.\n"
-								   "Please update your drivers or if you have a very old or integrated GPU upgrade it.",
-				"Unable to initialize Video driver");
-		return ERR_UNAVAILABLE;
-	}
+		if (gl_initialization_error) {
+			OS::get_singleton()->alert("Your video card driver does not support any of the supported OpenGL versions.\n"
+									"Please update your drivers or if you have a very old or integrated GPU upgrade it.",
+					"Unable to initialize Video driver");
+			return ERR_UNAVAILABLE;
+		}
 
-	video_driver_index = p_video_driver;
+		video_driver_index = p_video_driver;
 
-	context_gl->set_use_vsync(current_videomode.use_vsync);
+		context_gl->set_use_vsync(current_videomode.use_vsync);
 
 #endif
+	}
+
 	visual_server = memnew(VisualServerRaster);
 
 	if (get_render_thread_mode() != RENDER_THREAD_UNSAFE) {
