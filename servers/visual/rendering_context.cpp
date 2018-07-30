@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  context_gl.cpp                                                       */
+/*  rendering_context.cpp                                                */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,25 +28,25 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "context_gl.h"
+#include "rendering_context.h"
 
 #if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
 
-ContextGL *ContextGL::singleton = NULL;
+RenderingContext *RenderingContext::singleton = NULL;
 
-ContextGL *ContextGL::get_singleton() {
+RenderingContext *RenderingContext::get_singleton() {
 
 	return singleton;
 }
 
-ContextGL::ContextGL() {
+RenderingContext::RenderingContext() {
 
 	ERR_FAIL_COND(singleton);
 
 	singleton = this;
 }
 
-ContextGL::~ContextGL() {
+RenderingContext::~RenderingContext() {
 
 	if (singleton == this)
 		singleton = NULL;

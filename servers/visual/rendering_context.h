@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  context_gl.h                                                         */
+/*  rendering_context.h                                                  */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,8 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef CONTEXT_GL_H
-#define CONTEXT_GL_H
+#ifndef RENDERING_CONTEXT_H
+#define RENDERING_CONTEXT_H
 
 #if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
 
@@ -39,12 +39,12 @@
 	@author Juan Linietsky <reduzio@gmail.com>
 */
 
-class ContextGL {
+class RenderingContext {
 
-	static ContextGL *singleton;
+	static RenderingContext *singleton;
 
 public:
-	static ContextGL *get_singleton();
+	static RenderingContext *get_singleton();
 
 	virtual void release_current() = 0;
 
@@ -57,8 +57,8 @@ public:
 	virtual void set_use_vsync(bool p_use) = 0;
 	virtual bool is_using_vsync() const = 0;
 
-	ContextGL();
-	~ContextGL();
+	RenderingContext();
+	~RenderingContext();
 };
 
 #endif

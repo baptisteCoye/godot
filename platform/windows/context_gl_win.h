@@ -38,12 +38,13 @@
 #include "core/error_list.h"
 #include "core/os/os.h"
 #include "drivers/gl_context/context_gl.h"
+#include "servers/visual/rendering_context.h"
 
 #include <windows.h>
 
 typedef bool(APIENTRY *PFNWGLSWAPINTERVALEXTPROC)(int interval);
 
-class ContextGL_Win : public ContextGL {
+class ContextGL_Win : public RenderingContext {
 
 	HDC hDC;
 	HGLRC hRC;
