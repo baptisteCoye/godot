@@ -30,7 +30,6 @@
 
 #ifndef OS_WINDOWS_H
 #define OS_WINDOWS_H
-#include "context_gl_win.h"
 #include "core/os/input.h"
 #include "core/os/os.h"
 #include "core/project_settings.h"
@@ -39,6 +38,7 @@
 #include "drivers/wasapi/audio_driver_wasapi.h"
 #include "drivers/winmidi/win_midi.h"
 #include "power_windows.h"
+#include "rendering_context_gl_win.h"
 #include "servers/audio_server.h"
 #include "servers/visual/rasterizer.h"
 #include "servers/visual_server.h"
@@ -86,7 +86,7 @@ class OS_Windows : public OS {
 	int old_x, old_y;
 	Point2i center;
 #if defined(OPENGL_ENABLED)
-	ContextGL_Win *gl_context;
+	RenderingContextGL_Win *gl_context;
 #endif
 	VisualServer *visual_server;
 	int pressrc;

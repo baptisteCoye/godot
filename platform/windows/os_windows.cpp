@@ -1264,7 +1264,7 @@ Error OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int
 
 	gl_context = NULL;
 	while (!gl_context) {
-		gl_context = memnew(ContextGL_Win(hWnd, gles3_context));
+		gl_context = memnew(RenderingContextGL_Win(hWnd, gles3_context));
 
 		if (gl_context->initialize() != OK) {
 			memdelete(gl_context);

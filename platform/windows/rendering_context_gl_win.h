@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  context_gl_x11.h                                                     */
+/*  rendering_context_gl_win.h                                           */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,62 +28,51 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef CONTEXT_GL_X11_H
-#define CONTEXT_GL_X11_H
+#if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
 
-/**
-	@author Juan Linietsky <reduzio@gmail.com>
-*/
-#ifdef X11_ENABLED
+// Author: Juan Linietsky <reduzio@gmail.com>, (C) 2008
 
-#if defined(OPENGL_ENABLED)
+#ifndef RENDERING_CONTEXT_GL_WIN_H
+#define RENDERING_CONTEXT_GL_WIN_H
 
+#include "core/error_list.h"
+#include "core/os/os.h"
 #include "drivers/gl_context/context_gl.h"
-#include "os/os.h"
 #include "servers/visual/rendering_context.h"
-#include <X11/Xlib.h>
-#include <X11/extensions/Xrender.h>
+#include "servers/visual/rendering_context.h"
 
-struct ContextGL_X11_Private;
+#include <windows.h>
 
-class ContextGL_X11 : public RenderingContext {
+typedef bool(APIENTRY *PFNWGLSWAPINTERVALEXTPROC)(int interval);
 
-public:
-	enum ContextType {
-		OLDSTYLE,
-		GLES_2_0_COMPATIBLE,
-		GLES_3_0_COMPATIBLE
-	};
+class RenderingContextGL_Win : public RenderingContext {
 
-private:
-	ContextGL_X11_Private *p;
-	OS::VideoMode default_video_mode;
-	//::Colormap x11_colormap;
-	::Display *x11_display;
-	::Window &x11_window;
-	bool double_buffer;
-	bool direct_render;
-	int glx_minor, glx_major;
+	HDC hDC;
+	HGLRC hRC;
+	unsigned int pixel_format;
+	HWND hWnd;
+	bool opengl_3_context;
 	bool use_vsync;
-	ContextType context_type;
+
+	PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
 
 public:
 	virtual void release_current();
+
 	virtual void make_current();
-	virtual void swap_buffers();
+
 	virtual int get_window_width();
 	virtual int get_window_height();
+	virtual void swap_buffers();
 
 	virtual Error initialize();
 
 	virtual void set_use_vsync(bool p_use);
 	virtual bool is_using_vsync() const;
 
-	ContextGL_X11(::Display *p_x11_display, ::Window &p_x11_window, const OS::VideoMode &p_default_video_mode, ContextType p_context_type);
-	~ContextGL_X11();
+	RenderingContextGL_Win(HWND hwnd, bool p_opengl_3_context);
+	~RenderingContextGL_Win();
 };
-
-#endif
 
 #endif
 #endif

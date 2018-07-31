@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  context_gl_haiku.h                                                   */
+/*  rendering_context_vulkan.h                                           */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,37 +28,35 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef CONTEXT_GL_HAIKU_H
-#define CONTEXT_GL_HAIKU_H
+#ifndef RENDERING_CONTEXT_VULKAN_H
+#define RENDERING_CONTEXT_VULKAN_H
 
-#if defined(OPENGL_ENABLED)
+//#if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
 
-#include "drivers/gl_context/context_gl.h"
+#include "typedefs.h"
 
-#include "haiku_direct_window.h"
-#include "haiku_gl_view.h"
+class RenderingContextVulkan {
 
-class ContextGL_Haiku : public ContextGL {
-private:
-	HaikuGLView *view;
-	HaikuDirectWindow *window;
-
-	bool use_vsync;
+	static RenderingContextVulkan *singleton;
 
 public:
-	ContextGL_Haiku(HaikuDirectWindow *p_window);
-	~ContextGL_Haiku();
+	static RenderingContextVulkan *get_singleton();
 
-	virtual Error initialize();
-	virtual void release_current();
-	virtual void make_current();
-	virtual void swap_buffers();
-	virtual int get_window_width();
-	virtual int get_window_height();
+	virtual void release_current() = 0;
 
-	virtual void set_use_vsync(bool p_use);
-	virtual bool is_using_vsync() const;
+	virtual void make_current() = 0;
+
+	virtual void swap_buffers() = 0;
+
+	virtual Error initialize() = 0;
+
+	virtual void set_use_vsync(bool p_use) = 0;
+	virtual bool is_using_vsync() const = 0;
+
+	RenderingContextVulkan();
+	~RenderingContextVulkan();
 };
 
-#endif
+//#endif
+
 #endif

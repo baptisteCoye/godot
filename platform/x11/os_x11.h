@@ -31,8 +31,9 @@
 #ifndef OS_X11_H
 #define OS_X11_H
 
-#include "context_gl_x11.h"
 #include "core/os/input.h"
+#include "rendering_context_gl_x11.h"
+
 #include "crash_handler_x11.h"
 #include "drivers/unix/os_unix.h"
 #include "servers/visual_server.h"
