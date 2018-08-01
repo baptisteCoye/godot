@@ -214,6 +214,9 @@ def configure_msvc(env, manual_msvc_config):
     if env["bits"] == "64":
         env.AppendUnique(CPPDEFINES=['_WIN64'])
 
+    if env['vulkan']:
+        env.AppendUnique(CPPDEFINES=['VULKAN_ENABLED', 'VK_USE_PLATFORM_WIN32_KHR'])
+
     ## Libs
 
     LIBS = ['winmm', 'opengl32', 'dsound', 'kernel32', 'ole32', 'oleaut32',
@@ -320,8 +323,10 @@ def configure_mingw(env):
     if env['use_lto']:
         env.Append(CCFLAGS=['-flto'])
         env.Append(LINKFLAGS=['-flto=' + str(env.GetOption("num_jobs"))])
-
-
+    
+    if env['vulkan']:
+       env.Append(CCFLAGS=['-DVULKAN_ENABLED', '-DVK_USE_PLATFORM_WIN32_KHR'])
+ 
     ## Compile flags
 
     env.Append(CCFLAGS=['-DWINDOWS_ENABLED', '-mwindows'])
