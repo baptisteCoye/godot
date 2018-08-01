@@ -88,11 +88,6 @@ public:
 	void texture_set_data_partial(RID,const Ref<Image> &,int,int,int,int,int,int,int,int) {
 	}
 
-	Ref<Image> texture_get_data(RID p_texture, VS::CubeMapSide p_cube_side = VS::CUBEMAP_LEFT) const {
-		VulkanTexture *t = texture_owner.getornull(p_texture);
-		ERR_FAIL_COND_V(!t, Ref<Image>());
-		return t->image;
-	}
 	void texture_set_flags(RID p_texture, uint32_t p_flags) {
 		VulkanTexture *t = texture_owner.getornull(p_texture);
 		ERR_FAIL_COND(!t);
