@@ -36,11 +36,12 @@
 */
 #ifdef X11_ENABLED
 
-#if defined(OPENGL_ENABLED)
+#if defined(VULKAN_ENABLED)
 
 #include "drivers/gl_context/context_gl.h"
 #include "os/os.h"
 #include "servers/visual/rendering_context.h"
+
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrender.h>
 
