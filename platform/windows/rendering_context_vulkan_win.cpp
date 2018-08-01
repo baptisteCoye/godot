@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  rasterizer.cpp                                                       */
+/*  rendering_context_vulkan_win.cpp                                     */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,21 +28,59 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "rasterizer.h"
+#include "platform/windows/rendering_context_vulkan_win.h"
 
-#include "core/os/os.h"
-#include "core/print_string.h"
+#include <windows.h>
 
-MakeCurrentFunct *Rasterizer::_create_func = NULL;
+#define GLAD_VULKAN_IMPLEMENTATION
+#include "glad/vulkan.h"
 
-Rasterizer *Rasterizer::create() {
+//#if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
 
-	return _create_func->make_current();
+void RenderingContextVulkan_Win::release_current() {
 }
 
-RasterizerStorage *RasterizerStorage::base_singleton = NULL;
-
-RasterizerStorage::RasterizerStorage() {
-
-	base_singleton = this;
+void RenderingContextVulkan_Win::make_current() {
 }
+
+void RenderingContextVulkan_Win::swap_buffers() {
+}
+
+int RenderingContextVulkan_Win::get_window_width() {
+	return 0;
+}
+
+int RenderingContextVulkan_Win::get_window_height() {
+	return 0;
+}
+
+Error RenderingContextVulkan_Win::initialize() {
+
+	return OK;
+}
+
+void RenderingContextVulkan_Win::set_use_vsync(bool p_use) {
+}
+
+bool RenderingContextVulkan_Win::is_using_vsync() const {
+	return false;
+}
+
+RenderingContextVulkan_Win::RenderingContextVulkan_Win(HWND hwnd) {
+
+	hWnd = hwnd;
+	use_vsync = false;
+	device_extensions.insert(String(VK_KHR_SWAPCHAIN_EXTENSION_NAME).utf8());
+	validation_layers.insert(String("VK_LAYER_LUNARG_standard_validation").utf8());
+
+	glad_vk_version = gladLoaderLoadVulkan(NULL, NULL, NULL);
+	if (!glad_vk_version) {
+		ERR_FAIL("Unable to load Vulkan symbols!\n",
+				"gladLoad Failure");
+	}
+}
+
+RenderingContextVulkan_Win::~RenderingContextVulkan_Win() {
+}
+
+//#endif

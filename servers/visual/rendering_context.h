@@ -31,7 +31,7 @@
 #ifndef RENDERING_CONTEXT_H
 #define RENDERING_CONTEXT_H
 
-#if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
+//#if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
 
 #include "core/typedefs.h"
 
@@ -61,6 +61,6 @@ public:
 	~RenderingContext();
 };
 
-#endif
+//#endif
 
 #endif

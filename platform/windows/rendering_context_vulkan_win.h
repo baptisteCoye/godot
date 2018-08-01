@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  rasterizer.cpp                                                       */
+/*  rendering_context_vulkan_win.h                                       */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,21 +28,47 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "rasterizer.h"
+#ifndef RENDERING_CONTEXT_VULKAN_WIN_H
+#define RENDERING_CONTEXT_VULKAN_WIN_H
 
-#include "core/os/os.h"
-#include "core/print_string.h"
+//#if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
 
-MakeCurrentFunct *Rasterizer::_create_func = NULL;
+#include "glad/vulkan.h"
+#include <windows.h>
 
-Rasterizer *Rasterizer::create() {
+#include "drivers/vulkan/rendering_context_vulkan.h"
+#include "os/os.h"
+#include "servers/visual/rendering_context.h"
+#include "typedefs.h"
+#include "drivers/vulkan/rasterizer_vulkan.h"
 
-	return _create_func->make_current();
-}
+class RenderingContextVulkan_Win : public RenderingContextVulkan {
+private:
+	HWND hWnd;
 
-RasterizerStorage *RasterizerStorage::base_singleton = NULL;
+	const int WIDTH = 800;
+	const int HEIGHT = 600;
 
-RasterizerStorage::RasterizerStorage() {
+	unsigned int pixel_format;
+	bool use_vsync;
+	int glad_vk_version = 0;
 
-	base_singleton = this;
-}
+public:
+	virtual void release_current();
+	virtual void make_current();
+	virtual void swap_buffers();
+	virtual int get_window_width();
+	virtual int get_window_height();
+
+	virtual Error initialize();
+
+	virtual void set_use_vsync(bool p_use);
+	virtual bool is_using_vsync() const;
+
+	RenderingContextVulkan_Win(HWND hwnd);
+	~RenderingContextVulkan_Win();
+};
+
+//#endif
+
+#endif

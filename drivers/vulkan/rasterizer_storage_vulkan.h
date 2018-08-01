@@ -76,7 +76,7 @@ public:
 
     Ref<Image> RasterizerStorage::texture_get_data(RID,int) const {return Ref<Image>();}
 	VisualServer::TextureType texture_get_type(RID) const {return VisualServer::TextureType();}
-	uint32_t texture_get_depth(RID) const {}
+	uint32_t texture_get_depth(RID) const { return 0;}
 	void texture_set_size_override(RID,int,int,int) {}
 
 	void texture_set_data(RID,const Ref<Image> &,int) {
