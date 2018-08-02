@@ -41,18 +41,20 @@
 
 #include "platform/windows/os_windows.h"
 
-#include "glad/vulkan.h"
+#include "platform/windows/glad_vulkan_win.h"
 #include "thirdparty/shaderc/src/libshaderc/include/shaderc/shaderc.h"
 
 class RenderingContextVulkan : public RenderingContext {
 private:
+	const bool enable_validation = true;
+	VkResult _create_debug_report_callback_EXT(VkInstance instance, const VkDebugReportCallbackCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugReportCallbackEXT *pCallback);
+	void _destroy_debug_report_callback_EXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks *pAllocator);
+	static VKAPI_ATTR VkBool32 VKAPI_CALL _debug_callback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType, uint64_t obj, size_t location, int32_t code, const char *layerPrefix, const char *msg, void *userData);
+	VkDebugReportCallbackEXT vulkan_debug_callback;
+
+private:
 	static RenderingContextVulkan *singleton;
 
-	const int WIDTH = 800;
-	const int HEIGHT = 600;
-
-	unsigned int pixel_format;
-	HWND hWnd;
 	bool use_vsync;
 	int glad_vk_version = 0;
 
@@ -77,17 +79,9 @@ private:
 	VkCommandPool command_pool;
 	Vector<VkCommandBuffer> command_buffers;
 
-	VkSemaphore image_available_semaphore;
-	VkSemaphore render_finished_semaphore;
-
-	struct QueueFamilyIndices {
-		int graphics_family = -1;
-		int present_family = -1;
-
-		bool is_complete() {
-			return graphics_family >= 0 && present_family >= 0;
-		}
-	};
+	Vector<VkSemaphore> image_available_semaphore;
+	Vector<VkSemaphore> render_finished_semaphore;
+	Vector<VkFence> in_flight_fences;
 
 	struct SwapChainSupportDetails {
 		VkSurfaceCapabilitiesKHR capabilities;
@@ -104,6 +98,50 @@ protected:
 	RenderingContext *context;
 
 public:
+	struct QueueFamilyIndices {
+		int graphics_family = -1;
+		int present_family = -1;
+
+		bool is_complete() {
+			return graphics_family >= 0 && present_family >= 0;
+		}
+	};
+	void _enable_debug();
+	bool _check_device_extension_support(VkPhysicalDevice device);
+	RenderingContextVulkan::SwapChainSupportDetails _query_swap_chain_support(VkPhysicalDevice device);
+	VkSurfaceFormatKHR _choose_swap_surface_format(const Vector<VkSurfaceFormatKHR> &available_formats);
+	VkPresentModeKHR _choose_swap_present_mode(const Vector<VkPresentModeKHR> available_present_modes);
+	VkExtent2D _choose_swap_extent(const VkSurfaceCapabilitiesKHR &capabilities);
+	Error _pick_physical_device();
+	Error _create_instance();
+	Vector<VkImage> *_get_swap_chain_images();
+	VkCommandPool &_get_command_pool();
+	VkRenderPass &_get_render_pass();
+	Vector<VkFramebuffer> &_get_swap_chain_framebuffers();
+	VkPipeline &_get_graphics_pipeline();
+	VkExtent2D &_get_swap_chain_extent();
+	VkPhysicalDevice &_get_physical_device();
+	Vector<VkImageView> &_get_swap_chain_image_views();
+	VkPipelineLayout &_get_pipeline_layout();
+	VkFormat &_get_swap_chain_image_format();
+	Vector<VkFence> *_get_in_flight_fences();
+	Error _create_swap_chain();
+	Error _create_logical_device();
+	int _get_physical_device_score(const VkPhysicalDevice p_physical_device);
+	struct RenderingContextVulkan::QueueFamilyIndices _pick_queue_families(VkPhysicalDevice p_physical_device);
+	bool _is_swap_chain_adequate(const VkPhysicalDevice p_physical_device);
+	Vector<VkCommandBuffer> &_get_command_buffers();
+	Vector<VkSemaphore> &_get_image_available_semaphore();
+	Vector<VkSemaphore> &_get_render_finished_semaphore();
+	VkDevice *_get_device();
+	VkInstance *_get_instance();
+	VkSwapchainKHR *_get_swap_chain();
+	VkQueue *_get_present_queue();
+	VkQueue *_get_graphics_queue();
+
+public:
+	static const int max_frames_in_flight = 2;
+
 	virtual void release_current() = 0;
 
 	virtual void make_current() = 0;
@@ -118,46 +156,7 @@ public:
 	virtual bool is_using_vsync() const = 0;
 
 	RenderingContextVulkan();
-	bool check_device_extension_support(VkPhysicalDevice device);
-	RenderingContextVulkan::SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice device);
-	VkSurfaceFormatKHR choose_swap_surface_format(const Vector<VkSurfaceFormatKHR> &available_formats);
-	VkPresentModeKHR choose_swap_present_mode(const Vector<VkPresentModeKHR> available_present_modes);
-	VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR &capabilities);
-	Error pick_physical_device();
-	Error create_instance();
 	~RenderingContextVulkan();
-
-public:
-	void create_semaphores();
-	void create_command_buffers();
-	void create_command_pool();
-	void create_render_pass();
-	void create_framebuffers();
-	void create_graphics_pipeline();
-
-	Vector<uint8_t> compile_shader(const String shader, const String name, const shaderc_shader_kind kind);
-
-	Error create_image_views();
-	Error create_swap_chain();
-	Error create_logical_device();
-	int _get_physical_device_score(const VkPhysicalDevice p_physical_device);
-	struct RenderingContextVulkan::QueueFamilyIndices _pick_queue_families(VkPhysicalDevice p_physical_device);
-	bool is_swap_chain_adequate(const VkPhysicalDevice p_physical_device);
-
-	Vector<VkCommandBuffer> &get_command_buffers() { return command_buffers; }
-	VkSemaphore &get_image_available_semaphore() { return image_available_semaphore; }
-	VkSemaphore &get_render_finished_semaphore() { return render_finished_semaphore; }
-
-	VkDevice &get_device() { return device; }
-	void set_device(VkDevice val) { device = val; }
-	VkInstance &get_instance() { return instance; }
-	void set_instance(VkInstance val) { instance = val; }
-	VkSwapchainKHR &get_swap_chain() { return swap_chain; }
-	void set_swap_chain(VkSwapchainKHR val) { swap_chain = val; }
-	VkQueue &get_present_queue() { return present_queue; }
-	void set_present_queue(VkQueue val) { present_queue = val; }
-	VkQueue &get_graphics_queue() { return graphics_queue; }
-	void set_graphics_queue(VkQueue val) { graphics_queue = val; }
 };
 
 #endif

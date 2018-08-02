@@ -16,7 +16,9 @@ common_win = [
     "key_mapping_win.cpp",
     "joypad.cpp",
     "power_windows.cpp",
-    "windows_terminal_logger.cpp"
+    "windows_terminal_logger.cpp",
+	"vma_usage.cpp",
+	"glad_vulkan_win.cpp"
 ]
 
 res_file = 'godot_res.rc'

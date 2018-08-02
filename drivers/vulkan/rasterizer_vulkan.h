@@ -2,14 +2,17 @@
 #define RASTERIZER_VULKAN_H
 
 #include "core/project_settings.h"
-#include "servers/visual/rendering_context.h"
 #include "os/os.h"
 #include "platform/windows/rendering_context_vulkan_win.h"
 #include "servers/visual/rasterizer.h"
+#include "servers/visual/rendering_context.h"
 
 #include "rasterizer_canvas_vulkan.h"
 #include "rasterizer_scene_vulkan.h"
 #include "rasterizer_storage_vulkan.h"
+
+#include "main/splash.gen.h"
+#include "platform/windows/vma_usage.h"
 
 class MakeCurrentFunctVulkan : public MakeCurrentFunct {
 	RenderingContext *context;
@@ -23,36 +26,57 @@ public:
 };
 
 class RasterizerVulkan : public Rasterizer {
+private:
+	void _cleanup();
+	void _cleanup_swap_chain();
+	void _recreate_swap_chain();
+	void _create_image_views();
+	void _create_descriptor_set_layout();
+	void _create_graphics_pipeline();
+	void _create_framebuffers();
+	void _create_command_pool();
+	void _create_command_buffers(Vector<uint16_t> p_indices);
+	void _create_sync_objects();
+	void _create_index_buffer(Vector<uint16_t> p_indices, VkBuffer &p_index_buffer);
+	void _create_vertex_buffer(Vector<RasterizerStorageVulkan::Vertex> p_vertices, VkBuffer &p_vertex_buffer);
+	void _create_descriptor_pool();
+	void _create_descriptor_sets();
+	void _create_render_pass_end();
+	void _create_render_pass_begin();
+
+private:
+	VmaAllocation allocation;
+	VkDescriptorSetLayout descriptor_set_layout;
+	VkDescriptorPool descriptor_pool;
+	double time_total;
+	bool framebuffer_resized = false;
+
 protected:
-	RasterizerCanvasVulkan canvas;
-	RasterizerStorageVulkan storage;
-	RasterizerSceneVulkan scene;
+	RasterizerCanvasVulkan *canvas;
+	RasterizerStorageVulkan *storage;
+	RasterizerSceneVulkan *scene;
 	RenderingContext *context;
 
 public:
 	RenderingContextVulkan_Win *get_instance_vulkan();
-	RasterizerStorage *get_storage() { return &storage; }
-	RasterizerCanvas *get_canvas() { return &canvas; }
-	RasterizerScene *get_scene() { return &scene; }
+	RasterizerStorageVulkan *get_storage();
+	RasterizerCanvasVulkan *get_canvas();
+	RasterizerSceneVulkan *get_scene();
 
-
-	void set_boot_image(const Ref<Image> &p_image, const Color &p_color, bool p_scale) {}
-
+	void set_boot_image(const Ref<Image> &p_image, const Color &p_color, bool p_scale);
+	void update_descriptors();
 	void initialize();
-	void begin_frame(double frame_step) {}
-	void set_current_render_target(RID p_render_target) {}
-	void restore_render_target() {}
-	void clear_render_target(const Color &p_color) {}
-	void blit_render_target_to_screen(RID p_render_target, const Rect2 &p_screen_rect, int p_screen = 0) {}
+	void begin_frame(double frame_step);
+	void set_current_render_target(RID p_render_target);
+	void restore_render_target();
+	void clear_render_target(const Color &p_color);
+	void blit_render_target_to_screen(RID p_render_target, const Rect2 &p_screen_rect, int p_screen = 0);
 	void end_frame(bool p_swap_buffers);
-	void finalize() {}
-
+	void finalize();
 	static void make_current(RenderingContext *context);
-
 	static void register_config();
-
-	RasterizerVulkan(RenderingContext *p_context) { context = p_context; }
-	~RasterizerVulkan() {}
+	RasterizerVulkan(RenderingContext *p_context);
+	~RasterizerVulkan();
 };
 
 #endif // RASTERIZER_VULKAN_H

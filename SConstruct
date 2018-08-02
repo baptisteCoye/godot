@@ -446,6 +446,7 @@ if selected_platform in platform_list:
         methods.no_verbose(sys, env)
 
     if (not env["platform"] == "server"): # FIXME: detect GLES3
+        env.Append(BUILDERS = { 'VULKAN_GLSL' : env.Builder(action=run_in_subprocess(gles_builders.build_vulkan_headers), suffix='glsl.gen.h', src_suffix='.glsl')})
         env.Append(BUILDERS = { 'GLES3_GLSL' : env.Builder(action=run_in_subprocess(gles_builders.build_gles3_headers), suffix='glsl.gen.h', src_suffix='.glsl')})
         env.Append(BUILDERS = { 'GLES2_GLSL' : env.Builder(action=run_in_subprocess(gles_builders.build_gles2_headers), suffix='glsl.gen.h', src_suffix='.glsl')})
 
