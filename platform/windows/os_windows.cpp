@@ -46,8 +46,9 @@
 #include "joypad.h"
 #include "lang_table.h"
 #include "main/main.h"
-#include "platform/windows/rendering_context_vulkan_win.h"
 #include "platform/windows/rendering_context_gl_win.h"
+#include "platform/windows/rendering_context_vulkan_win.h"
+#include "project_settings.h"
 #include "servers/audio_server.h"
 #include "servers/visual/visual_server_raster.h"
 #include "servers/visual/visual_server_wrap_mt.h"
@@ -1150,7 +1151,8 @@ Error OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int
 	wc.hInstance = godot_hinstance ? godot_hinstance : GetModuleHandle(NULL);
 	wc.hIcon = LoadIcon(NULL, IDI_WINLOGO);
 	wc.hCursor = NULL; //LoadCursor(NULL, IDC_ARROW);
-	wc.hbrBackground = NULL;
+	Color boot_bg = GLOBAL_GET("application/boot_splash/bg_color");
+	wc.hbrBackground = CreateSolidBrush(RGB(Math::round(boot_bg.r * 255.f), Math::round(boot_bg.g * 255.f), Math::round(boot_bg.b * 255.f), Math::round(boot_bg.a * 255.f)));
 	wc.lpszMenuName = NULL;
 	wc.lpszClassName = L"Engine";
 

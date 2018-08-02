@@ -35,19 +35,50 @@
 #include "typedefs.h"
 
 #include "drivers/vulkan/rendering_context_vulkan.h"
-#include "glad/vulkan.h"
-
+#include "thirdparty/glad2/include/glad/vulkan.h"
+#include "vma_usage.h"
 
 class RenderingContextVulkan_Win : public RenderingContextVulkan {
 private:
 	HWND hWnd;
 
-	const int WIDTH = 800;
-	const int HEIGHT = 600;
-
 	unsigned int pixel_format;
 	bool use_vsync;
 	int glad_vk_version = 0;
+
+public:
+	VmaAllocator allocator;
+	VmaAllocator *get_allocator() {
+		return &allocator;
+	}
+
+	void allocate_vma() {
+		VmaAllocatorCreateInfo allocator_info = {};
+
+		VmaVulkanFunctions vma_vulkan_functions;
+		vma_vulkan_functions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+		vma_vulkan_functions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+		vma_vulkan_functions.vkAllocateMemory = vkAllocateMemory;
+		vma_vulkan_functions.vkFreeMemory = vkFreeMemory;
+		vma_vulkan_functions.vkMapMemory = vkMapMemory;
+		vma_vulkan_functions.vkUnmapMemory = vkUnmapMemory;
+		vma_vulkan_functions.vkBindBufferMemory = vkBindBufferMemory;
+		vma_vulkan_functions.vkBindImageMemory = vkBindImageMemory;
+		vma_vulkan_functions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+		vma_vulkan_functions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+		vma_vulkan_functions.vkCreateBuffer = vkCreateBuffer;
+		vma_vulkan_functions.vkDestroyBuffer = vkDestroyBuffer;
+		vma_vulkan_functions.vkCreateImage = vkCreateImage;
+		vma_vulkan_functions.vkDestroyImage = vkDestroyImage;
+		vma_vulkan_functions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+		vma_vulkan_functions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+
+		allocator_info.pVulkanFunctions = &vma_vulkan_functions;
+		allocator_info.physicalDevice = _get_physical_device();
+		allocator_info.device = *_get_device();
+
+		vmaCreateAllocator(&allocator_info, &allocator);
+	}
 
 public:
 	virtual void release_current();
