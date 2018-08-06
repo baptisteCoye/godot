@@ -42,7 +42,9 @@ public:
 		ERR_FAIL_COND_V(!texture, RID());
 		return texture_owner.make_rid(texture);
 	}
-	void texture_allocate(RID p_texture, int p_width, int p_height, Image::Format p_format, uint32_t p_flags = VS::TEXTURE_FLAGS_DEFAULT) {
+	void texture_allocate(RID p_texture, int p_width, int p_height, int p_depth_3d,
+		Image::Format p_format, VisualServer::TextureType p_type = VS::TEXTURE_TYPE_2D,
+		uint32_t p_flags = VS::TEXTURE_FLAGS_DEFAULT) {
 		VulkanTexture *t = texture_owner.getornull(p_texture);
 		ERR_FAIL_COND(!t);
 		t->width = p_width;
@@ -52,7 +54,7 @@ public:
 		t->image = Ref<Image>(memnew(Image));
 		t->image->create(p_width, p_height, false, p_format);
 	}
-	void texture_set_data(RID p_texture, const Ref<Image> &p_image, VS::CubeMapSide p_cube_side = VS::CUBEMAP_LEFT) {
+	void texture_set_data(RID p_texture, const Ref<Image> &p_image, int p_level = 0) {
 		VulkanTexture *t = texture_owner.getornull(p_texture);
 		ERR_FAIL_COND(!t);
 		t->width = p_image->get_width();
@@ -61,7 +63,13 @@ public:
 		t->image->create(t->width, t->height, false, t->format, p_image->get_data());
 	}
 
-	void texture_set_data_partial(RID p_texture, const Ref<Image> &p_image, int src_x, int src_y, int src_w, int src_h, int dst_x, int dst_y, int p_dst_mip, VS::CubeMapSide p_cube_side) {
+	void texture_set_data_partial(RID p_texture,
+			const Ref<Image> &p_image,
+			int src_x, int src_y,
+			int src_w, int src_h,
+			int dst_x, int dst_y,
+			int p_dst_mip,
+			int p_level = 0) {
 		VulkanTexture *t = texture_owner.get(p_texture);
 
 		ERR_FAIL_COND(!t);
@@ -75,17 +83,9 @@ public:
 	}
 
     Ref<Image> RasterizerStorage::texture_get_data(RID,int) const {return Ref<Image>();}
-	VisualServer::TextureType texture_get_type(RID) const {return VisualServer::TextureType();}
-	uint32_t texture_get_depth(RID) const { return 0;}
-	void texture_set_size_override(RID,int,int,int) {}
 
-	void texture_set_data(RID,const Ref<Image> &,int) {
-	}
-
-	void texture_allocate(RID,int,int,int,Image::Format,VisualServer::TextureType,uint32_t) {	
-	}
-
-	void texture_set_data_partial(RID,const Ref<Image> &,int,int,int,int,int,int,int,int) {
+	VS::TextureType texture_get_type(RID p_texture) const {
+		return VS::TEXTURE_TYPE_2D;
 	}
 
 	void texture_set_flags(RID p_texture, uint32_t p_flags) {
@@ -106,7 +106,8 @@ public:
 	uint32_t texture_get_texid(RID p_texture) const { return 0; }
 	uint32_t texture_get_width(RID p_texture) const { return 0; }
 	uint32_t texture_get_height(RID p_texture) const { return 0; }
-	void texture_set_size_override(RID p_texture, int p_width, int p_height) {}
+	uint32_t texture_get_depth(RID p_texture) const { return 0; }
+	void texture_set_size_override(RID p_texture, int p_width, int p_height, int p_depth_3d) {}
 
 	void texture_set_path(RID p_texture, const String &p_path) {
 		VulkanTexture *t = texture_owner.getornull(p_texture);
