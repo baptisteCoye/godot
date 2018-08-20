@@ -35,7 +35,9 @@ private:
 	void _create_graphics_pipeline();
 	void _create_framebuffers();
 	void _create_command_pool();
-	void _create_command_buffers(Vector<uint16_t> p_indices);
+	void _primary_buffer_end(size_t i);
+	VkRenderPassBeginInfo &_create_render_pass_info(size_t i);
+	void _create_primary_command_buffers();
 	void _create_sync_objects();
 	void _create_index_buffer(Vector<uint16_t> p_indices, VkBuffer &p_index_buffer);
 	void _create_vertex_buffer(Vector<RasterizerStorageVulkan::Vertex> p_vertices, VkBuffer &p_vertex_buffer);
@@ -43,6 +45,7 @@ private:
 	void _create_descriptor_sets();
 	void _create_render_pass_end();
 	void _create_render_pass_begin();
+	void _render_pass_begin();
 
 private:
 	VmaAllocation allocation;

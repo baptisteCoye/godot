@@ -64,6 +64,7 @@ public:
 
 		VkCommandBuffer command_buffer = VK_NULL_HANDLE;
 
+		VkPipeline graphics_pipeline = VK_NULL_HANDLE;
 		uint32_t fbo;
 
 		//GLuint color;
@@ -167,6 +168,8 @@ public:
 		Vector<VkSubpassDescription> subpasses;
 		Vector<VkSubpassDependency> dependencies;
 
+		VkCommandBuffer primary_command_buffer;
+		Vector<VkCommandBuffer> active_command_buffers;
 	} frame;
 
 	/* TEXTURE API */
@@ -202,6 +205,7 @@ public:
 	};
 
 public:
+	void _render_target_clear(RasterizerStorageVulkan::RenderTarget *rt);
 	VkImageView *_create_image_view(VkImage image, VkFormat format);
 	VkSampler _create_texture_sampler();
 	void _convert_formats(const Ref<Image> &p_image, VkFormat &format, VulkanTexture *t);

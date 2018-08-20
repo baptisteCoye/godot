@@ -121,7 +121,7 @@ void RasterizerVulkan::_cleanup_swap_chain() {
 
 	vkDestroyPipeline(*get_instance_vulkan()->_get_device(), get_instance_vulkan()->_get_graphics_pipeline(), nullptr);
 	vkDestroyPipelineLayout(*get_instance_vulkan()->_get_device(), get_instance_vulkan()->_get_pipeline_layout(), nullptr);
-	vkDestroyRenderPass(*get_instance_vulkan()->_get_device(), get_instance_vulkan()->_get_render_pass(), nullptr);
+	//vkDestroyRenderPass(*get_instance_vulkan()->_get_device(), get_instance_vulkan()->_get_render_pass(), nullptr);
 
 	for (size_t i = 10; i < get_instance_vulkan()->_get_swap_chain_image_views().size(); i++) {
 		vkDestroyImageView(*get_instance_vulkan()->_get_device(), get_instance_vulkan()->_get_swap_chain_image_views()[i], nullptr);
@@ -150,8 +150,8 @@ void RasterizerVulkan::set_boot_image(const Ref<Image> &p_image, const Color &p_
 	if (p_image.is_null() || p_image->empty())
 		return;
 
-	int window_w = OS::get_singleton()->get_video_mode().width;
-	int window_h = OS::get_singleton()->get_video_mode().height;
+	uint32_t window_w = OS::get_singleton()->get_video_mode().width;
+	uint32_t window_h = OS::get_singleton()->get_video_mode().height;
 
 	Rect2 imgrect(0, 0, p_image->get_width(), p_image->get_height());
 	Rect2 screenrect;
@@ -190,13 +190,13 @@ void RasterizerVulkan::set_boot_image(const Ref<Image> &p_image, const Color &p_
 	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, screenrect.size.height), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) });
 	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, screenrect.size.height), Vector3(1.0f, 1.0f, 1.0f), Vector2(1.0f, 1.0f) });
 
-	begin_frame(0.0);
-
 	if (OS::get_singleton()->get_window_per_pixel_transparency_enabled()) {
 		storage->frame.clear_request_color = Color(0.0f, 0.0f, 0.0f, 0.0f);
 	} else {
 		storage->frame.clear_request_color = Color(p_color.r, p_color.g, p_color.b, 1.0f);
 	}
+
+	begin_frame(0.0);
 
 	canvas->canvas_begin();
 
@@ -208,14 +208,27 @@ void RasterizerVulkan::set_boot_image(const Ref<Image> &p_image, const Color &p_
 
 	_create_index_buffer(storage->data.indices, storage->data.index_buffer);
 	_create_vertex_buffer(storage->data.vertices, storage->data.vertex_buffer);
-	_create_framebuffers();
-	_create_command_buffers(storage->data.indices);
+
 	canvas->draw_generic_textured_rect(screenrect, Rect2(0, 0, 1, 1));
 	scene->_update_uniform_buffer(storage->frame.image_index);
 	canvas->canvas_end();
+
+	_create_descriptor_set_layout();
+
+	_render_pass_begin();
+	
 	end_frame(true);
 
 	storage->free(texture); // free since it's only one frame that stays there
+}
+
+void RasterizerVulkan::_render_pass_begin() {
+	_create_primary_command_buffers();
+	for (size_t i = 0; i < get_instance_vulkan()->_get_command_buffers().size(); i++) {
+		VkRenderPassBeginInfo info = _create_render_pass_info(i);
+
+		vkCmdBeginRenderPass(get_instance_vulkan()->_get_command_buffers()[i], &info, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+	}
 }
 
 void RasterizerVulkan::update_descriptors() {
@@ -277,10 +290,6 @@ void RasterizerVulkan::initialize() {
 	_create_descriptor_pool();
 	_create_descriptor_set_layout();
 
-	_create_render_pass_begin();
-	_create_render_pass_end();
-	_create_graphics_pipeline();
-	_create_framebuffers();
 	_create_sync_objects();
 	_create_descriptor_sets();
 }
@@ -295,7 +304,7 @@ void RasterizerVulkan::begin_frame(double frame_step) {
 
 	double time_roll_over = GLOBAL_GET("rendering/limits/time/time_rollover_secs");
 	if (time_total > time_roll_over)
-		time_total = 0; //roll over every day (should be customz
+		time_total = 0; //roll over every day (should be custom)
 
 	storage->frame.time[0] = time_total;
 	storage->frame.time[1] = Math::fmod(time_total, 3600);
@@ -312,7 +321,11 @@ void RasterizerVulkan::begin_frame(double frame_step) {
 	//scene->iteration();
 
 	_create_image_views();
+	_create_primary_command_buffers();
 	_create_render_pass_begin();
+	_create_render_pass_end();
+	_create_framebuffers();
+	_render_pass_begin();
 }
 
 void RasterizerVulkan::set_current_render_target(RID p_render_target) {
@@ -330,7 +343,6 @@ void RasterizerVulkan::set_current_render_target(RID p_render_target) {
 	}
 
 	if (p_render_target.is_valid()) {
-		_create_framebuffers();
 		RasterizerStorageVulkan::RenderTarget *rt = storage->render_target_owner.getornull(p_render_target);
 		storage->frame.current_rt = rt;
 		ERR_FAIL_COND(!rt);
@@ -341,21 +353,30 @@ void RasterizerVulkan::set_current_render_target(RID p_render_target) {
 		VkCommandBufferAllocateInfo alloc_info = {};
 		alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		alloc_info.commandPool = get_instance_vulkan()->_get_command_pool();
-		alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		alloc_info.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 		alloc_info.commandBufferCount = 1;
 
 		if (vkAllocateCommandBuffers(*get_instance_vulkan()->_get_device(), &alloc_info, &rt->command_buffer) != VK_SUCCESS) {
 			CRASH_COND("Can't allocate command buffers!");
 		}
 
-		VkCommandBufferBeginInfo being_info = {};
-		being_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		being_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-		being_info.pInheritanceInfo = NULL; // Optional
+		VkCommandBufferInheritanceInfo inheritance_info = {};
+		inheritance_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+		inheritance_info.pNext = NULL;
+		inheritance_info.renderPass = get_instance_vulkan()->_get_render_pass();
+		inheritance_info.subpass = 0;
+		inheritance_info.framebuffer = VK_NULL_HANDLE; // @TODO Locate framebuffer for better performance
 
-		if (vkBeginCommandBuffer(rt->command_buffer, &being_info) != VK_SUCCESS) {
-			CRASH_COND("Can't Begin Recording Command Buffer.");
+		VkCommandBufferBeginInfo begin_info = {};
+		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		begin_info.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+		begin_info.pInheritanceInfo = &inheritance_info;
+
+		if (vkBeginCommandBuffer(rt->command_buffer, &begin_info) != VK_SUCCESS) {
+			CRASH_COND("Can't Record Command Buffer!");
 		}
+
+		_create_graphics_pipeline();
 	} else {
 		storage->frame.current_rt = NULL;
 		storage->frame.clear_request = false;
@@ -376,32 +397,14 @@ void RasterizerVulkan::clear_render_target(const Color &p_color) {
 
 void RasterizerVulkan::blit_render_target_to_screen(RID p_render_target, const Rect2 &p_screen_rect, int p_screen) {
 	RasterizerStorageVulkan::RenderTarget *rt = storage->render_target_owner.getornull(p_render_target);
-	//@TODO copy rects
-
-	VkRenderPassBeginInfo render_pass_info = {};
-	render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	render_pass_info.renderPass = get_instance_vulkan()->_get_render_pass();
-	render_pass_info.framebuffer = get_instance_vulkan()->_get_swap_chain_framebuffers()[storage->frame.current_frame];
-
-	render_pass_info.renderArea.offset = { 0, 0 };
-	render_pass_info.renderArea.extent = get_instance_vulkan()->_get_swap_chain_extent();
-
-	VkClearValue clear_color = { storage->frame.clear_request_color.r,
-		storage->frame.clear_request_color.g,
-		storage->frame.clear_request_color.b,
-		1.0f };
-	render_pass_info.clearValueCount = 1;
-	render_pass_info.pClearValues = &clear_color;
-
-	vkCmdBeginRenderPass(rt->command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	vkCmdBindPipeline(rt->command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, get_instance_vulkan()->_get_graphics_pipeline());
-	VkRect2D scissor_rect;
-	scissor_rect.offset.x = MAX((int32_t)(p_screen_rect.position.x), 0);
-	scissor_rect.offset.y = MAX((int32_t)(p_screen_rect.position.y), 0);
-	scissor_rect.extent.width = (uint32_t)(p_screen_rect.size.width);
-	scissor_rect.extent.height = (uint32_t)(p_screen_rect.size.height);
 
+	VkRect2D scissor_rect;
+	scissor_rect.offset.x = 0;
+	scissor_rect.offset.y = 0;
+	scissor_rect.extent.width = p_screen_rect.size.width;
+	scissor_rect.extent.height = p_screen_rect.size.height;
 	vkCmdSetScissor(rt->command_buffer, 0, 1, &scissor_rect);
 
 	VkBuffer vertex_buffers[] = { storage->data.vertex_buffer };
@@ -409,16 +412,15 @@ void RasterizerVulkan::blit_render_target_to_screen(RID p_render_target, const R
 	vkCmdBindVertexBuffers(rt->command_buffer, 0, 1, vertex_buffers, offsets);
 
 	vkCmdBindIndexBuffer(rt->command_buffer, storage->data.index_buffer, 0, VK_INDEX_TYPE_UINT16);
+	VkPipelineLayout &pipeline_layout = get_instance_vulkan()->_get_pipeline_layout();
 	vkCmdBindDescriptorSets(rt->command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			get_instance_vulkan()->_get_pipeline_layout(), 0, 1, &canvas->_get_descriptor_sets()->write[storage->frame.current_frame], 0, NULL);
+			pipeline_layout, 0, 1, canvas->_get_descriptor_sets()->ptrw(), 0, NULL);
 	vkCmdDrawIndexed(rt->command_buffer, static_cast<uint32_t>(storage->data.indices.size()), 1, 0, 0, 0);
-	const int32_t fullscreen_triangle_vertices = 3;
-	vkCmdDrawIndexed(rt->command_buffer, fullscreen_triangle_vertices, rt->depth, 0, 0, 0);
 
-	vkCmdEndRenderPass(rt->command_buffer);
 	if (vkEndCommandBuffer(rt->command_buffer) != VK_SUCCESS) {
 		CRASH_COND("Can't Record Command Buffer!");
 	}
+	storage->frame.active_command_buffers.push_back(rt->command_buffer);
 }
 
 void RasterizerVulkan::_create_image_views() {
@@ -804,68 +806,50 @@ void RasterizerVulkan::_create_command_pool() {
 	}
 }
 
-void RasterizerVulkan::_create_command_buffers(Vector<uint16_t> p_indices) {
-	get_instance_vulkan()->_get_command_buffers().resize(get_instance_vulkan()->_get_swap_chain_framebuffers().size());
+void RasterizerVulkan::_primary_buffer_end(size_t i) {
+	if (vkEndCommandBuffer(get_instance_vulkan()->_get_command_buffers()[i]) != VK_SUCCESS) {
+		CRASH_COND("Can't Record Command Buffer!");
+	}
+}
+
+VkRenderPassBeginInfo &RasterizerVulkan::_create_render_pass_info(size_t i) {
+	VkCommandBufferBeginInfo being_info = {};
+	being_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	being_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+	being_info.pInheritanceInfo = NULL; // Optional
+
+	if (vkBeginCommandBuffer(get_instance_vulkan()->_get_command_buffers().write[i], &being_info) != VK_SUCCESS) {
+		CRASH_COND("Can't Begin Recording Command Buffer.");
+	}
+
+	VkRenderPassBeginInfo render_pass_info = {};
+	render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	render_pass_info.renderPass = get_instance_vulkan()->_get_render_pass();
+	render_pass_info.framebuffer = get_instance_vulkan()->_get_swap_chain_framebuffers()[i];
+
+	render_pass_info.renderArea.offset = { 0, 0 };
+	render_pass_info.renderArea.extent = get_instance_vulkan()->_get_swap_chain_extent();
+
+	VkClearValue clear_color = { storage->frame.clear_request_color.r,
+		storage->frame.clear_request_color.g,
+		storage->frame.clear_request_color.b,
+		storage->frame.clear_request_color.a };
+	render_pass_info.clearValueCount = 1;
+	render_pass_info.pClearValues = &clear_color;
+
+	return render_pass_info;
+}
+
+void RasterizerVulkan::_create_primary_command_buffers() {
+	get_instance_vulkan()->_get_command_buffers().resize(get_instance_vulkan()->_get_swap_chain_image_views().size());
 	VkCommandBufferAllocateInfo alloc_info = {};
 	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	alloc_info.commandPool = get_instance_vulkan()->_get_command_pool();
 	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	alloc_info.commandBufferCount = (uint32_t)get_instance_vulkan()->_get_command_buffers().size();
+	alloc_info.commandBufferCount = (uint32_t)get_instance_vulkan()->_get_swap_chain_image_views().size();
 
 	if (vkAllocateCommandBuffers(*get_instance_vulkan()->_get_device(), &alloc_info, get_instance_vulkan()->_get_command_buffers().ptrw()) != VK_SUCCESS) {
 		CRASH_COND("Can't allocate command buffers!");
-	}
-
-	for (size_t i = 0; i < get_instance_vulkan()->_get_command_buffers().size(); i++) {
-		VkCommandBufferBeginInfo being_info = {};
-		being_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		being_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-		being_info.pInheritanceInfo = NULL; // Optional
-
-		if (vkBeginCommandBuffer(get_instance_vulkan()->_get_command_buffers()[i], &being_info) != VK_SUCCESS) {
-			CRASH_COND("Can't Begin Recording Command Buffer.");
-		}
-
-		VkRenderPassBeginInfo render_pass_info = {};
-		render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		render_pass_info.renderPass = get_instance_vulkan()->_get_render_pass();
-		render_pass_info.framebuffer = get_instance_vulkan()->_get_swap_chain_framebuffers()[i];
-
-		render_pass_info.renderArea.offset = { 0, 0 };
-		render_pass_info.renderArea.extent = get_instance_vulkan()->_get_swap_chain_extent();
-
-		VkClearValue clear_color = { storage->frame.clear_request_color.r,
-			storage->frame.clear_request_color.g,
-			storage->frame.clear_request_color.b,
-			storage->frame.clear_request_color.a };
-		render_pass_info.clearValueCount = 1;
-		render_pass_info.pClearValues = &clear_color;
-
-		vkCmdBeginRenderPass(get_instance_vulkan()->_get_command_buffers()[i], &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-
-		vkCmdBindPipeline(get_instance_vulkan()->_get_command_buffers()[i], VK_PIPELINE_BIND_POINT_GRAPHICS, get_instance_vulkan()->_get_graphics_pipeline());
-
-		VkRect2D scissor_rect;
-		scissor_rect.offset.x = 0;
-		scissor_rect.offset.y = 0;
-		scissor_rect.extent.width = get_instance_vulkan()->get_window_width();
-		scissor_rect.extent.height = get_instance_vulkan()->get_window_height();
-		vkCmdSetScissor(get_instance_vulkan()->_get_command_buffers()[i], 0, 1, &scissor_rect);
-
-		VkBuffer vertex_buffers[] = { storage->data.vertex_buffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(get_instance_vulkan()->_get_command_buffers()[i], 0, 1, vertex_buffers, offsets);
-
-		vkCmdBindIndexBuffer(get_instance_vulkan()->_get_command_buffers()[i], storage->data.index_buffer, 0, VK_INDEX_TYPE_UINT16);
-		vkCmdBindDescriptorSets(get_instance_vulkan()->_get_command_buffers()[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-				get_instance_vulkan()->_get_pipeline_layout(), 0, 1, &canvas->_get_descriptor_sets()->write[i], 0, NULL);
-		vkCmdDrawIndexed(get_instance_vulkan()->_get_command_buffers()[i], static_cast<uint32_t>(p_indices.size()), 1, 0, 0, 0);
-
-		vkCmdEndRenderPass(get_instance_vulkan()->_get_command_buffers()[i]);
-
-		if (vkEndCommandBuffer(get_instance_vulkan()->_get_command_buffers()[i]) != VK_SUCCESS) {
-			CRASH_COND("Can't Record Command Buffer!");
-		}
 	}
 }
 
@@ -897,63 +881,85 @@ void RasterizerVulkan::_recreate_swap_chain() {
 
 	get_instance_vulkan()->_create_swap_chain();
 	_create_image_views();
+	_create_primary_command_buffers();
 	_create_render_pass_begin();
 	_create_render_pass_end();
-	_create_graphics_pipeline();
 	_create_framebuffers();
+	_render_pass_begin();
+	_create_graphics_pipeline();
 }
 
 void RasterizerVulkan::end_frame(bool p_swap_buffers) {
 	ERR_EXPLAIN("Vulkan Doesn't Swap Buffers Manually.");
 	ERR_FAIL_COND(p_swap_buffers == false);
-		
-	_create_render_pass_end();
-	_create_descriptor_set_layout();
-	_create_graphics_pipeline();
-	_create_framebuffers();
 
-	VkAttachmentDescription color_attachment = {};
-	color_attachment.format = get_instance_vulkan()->_get_swap_chain_image_format();
-	color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	for (size_t i = 0; i < get_instance_vulkan()->_get_command_buffers().size(); i++) {
+		if (storage->frame.active_command_buffers.size() == 0) {
+			VkCommandBufferAllocateInfo alloc_info = {};
+			alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			alloc_info.commandPool = get_instance_vulkan()->_get_command_pool();
+			alloc_info.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+			alloc_info.commandBufferCount = 1;
 
-	VkAttachmentReference color_attachment_ref = {};
-	color_attachment_ref.attachment = 0;
-	color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			VkCommandBuffer command_buffer;
 
-	VkSubpassDescription subpass = {};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			if (vkAllocateCommandBuffers(*get_instance_vulkan()->_get_device(), &alloc_info, &command_buffer) != VK_SUCCESS) {
+				CRASH_COND("Can't allocate command buffers!");
+			}
 
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &color_attachment_ref;
+			VkCommandBufferInheritanceInfo inheritance_info = {};
+			inheritance_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+			inheritance_info.pNext = NULL;
+			inheritance_info.renderPass = get_instance_vulkan()->_get_render_pass();
+			inheritance_info.subpass = 0;
+			inheritance_info.framebuffer = VK_NULL_HANDLE; // @TODO Locate framebuffer for better performance
 
-	VkSubpassDependency dependency = {};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			VkCommandBufferBeginInfo begin_info = {};
+			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			begin_info.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+			begin_info.pInheritanceInfo = &inheritance_info;
 
-	VkRenderPassCreateInfo renderPassInfo = {};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &color_attachment;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	renderPassInfo.dependencyCount = 1;
-	renderPassInfo.pDependencies = &dependency;
+			if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS) {
+				CRASH_COND("Can't Record Command Buffer!");
+			}
 
-	if (vkCreateRenderPass(*get_instance_vulkan()->_get_device(), &renderPassInfo, NULL, &get_instance_vulkan()->_get_render_pass()) != VK_SUCCESS) {
-		CRASH_COND("Can't Create Render Pass.");
+			_create_graphics_pipeline();
+
+			vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, get_instance_vulkan()->_get_graphics_pipeline());
+
+			VkRect2D scissor_rect;
+			scissor_rect.offset.x = 0;
+			scissor_rect.offset.y = 0;
+			scissor_rect.extent.width = get_instance_vulkan()->get_window_width();
+			scissor_rect.extent.height = get_instance_vulkan()->get_window_width();
+			vkCmdSetScissor(command_buffer, 0, 1, &scissor_rect);
+
+			VkBuffer vertex_buffers[] = { storage->data.vertex_buffer };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+
+			vkCmdBindIndexBuffer(command_buffer, storage->data.index_buffer, 0, VK_INDEX_TYPE_UINT16);
+			VkPipelineLayout &pipeline_layout = get_instance_vulkan()->_get_pipeline_layout();
+			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+					pipeline_layout, 0, 1, canvas->_get_descriptor_sets()->ptrw(), 0, NULL);
+			vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(storage->data.indices.size()), 1, 0, 0, 0);
+
+			if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
+				CRASH_COND("Can't Record Command Buffer!");
+			}
+			vkCmdExecuteCommands(get_instance_vulkan()->_get_command_buffers().write[i], 1, &command_buffer);
+		} else {
+			vkCmdExecuteCommands(get_instance_vulkan()->_get_command_buffers().write[i], storage->frame.active_command_buffers.size(), storage->frame.active_command_buffers.ptrw());
+		}
 	}
 
-	_create_command_buffers(storage->data.indices);
+	storage->frame.active_command_buffers.clear();
+
+	for (size_t i = 0; i < get_instance_vulkan()->_get_command_buffers().size(); i++) {
+		vkCmdEndRenderPass(get_instance_vulkan()->_get_command_buffers().write[i]);
+		//@TODO move back here
+		_primary_buffer_end(i);
+	}
 
 	vkWaitForFences(*get_instance_vulkan()->_get_device(), 1, &(*get_instance_vulkan()->_get_in_flight_fences())[storage->frame.current_frame], VK_TRUE, UINT64_MAX);
 
