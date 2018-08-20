@@ -5,6 +5,17 @@ RenderingContextVulkan_Win *RasterizerStorageVulkan::_get_instance_vulkan() {
 	return dynamic_cast<RenderingContextVulkan_Win *>(context);
 }
 
+
+void RasterizerStorageVulkan::_render_target_clear(RenderTarget *rt) {
+	if (rt->command_buffer) {
+		rt->command_buffer = VK_NULL_HANDLE;
+	}
+
+	if (rt->graphics_pipeline) {
+		rt->graphics_pipeline = VK_NULL_HANDLE;
+	}
+}
+
 VkCommandBuffer RasterizerStorageVulkan::_begin_single_time_commands() {
 	VkCommandBufferAllocateInfo alloc_info = {};
 	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1217,16 +1228,28 @@ VS::InstanceType RasterizerStorageVulkan::get_base_type(RID p_rid) const {
 }
 
 bool RasterizerStorageVulkan::free(RID p_rid) {
-	if (texture_owner.owns(p_rid)) {
-		// delete the texture
+	if (render_target_owner.owns(p_rid)) {
+		RenderTarget *rt = render_target_owner.getornull(p_rid);
+		_render_target_clear(rt);
+		VulkanTexture *t = texture_owner.get(rt->texture);
+		texture_owner.free(rt->texture);
+		memdelete(t);
+		render_target_owner.free(p_rid);
+		memdelete(rt);
+
+	} else if (texture_owner.owns(p_rid)) {
 		VulkanTexture *texture = texture_owner.get(p_rid);
+		//ERR_FAIL_COND_V(texture->render_target, true); //can't free the render target texture, dude
 		//TODO implement more of the api
-		//vkDestroySampler(*get_instance_vulkan()->get_device(), texture->texture_sampler, nullptr);
-		//vkDestroyImageView(*get_instance_vulkan()->get_device(), texture->texture_image_view, nullptr);
-		//vkDestroyImage(*get_instance_vulkan()->get_device(), texture->texture_image, nullptr);
-		//vmaFreeMemory(*get_instance_vulkan()->get_allocator(), texture->texture_image_allocation);
+		//vkDestroySampler(*_get_instance_vulkan()->_get_device(), texture->texture_sampler, nullptr);
+		//vkDestroyImageView(*_get_instance_vulkan()->_get_device(), texture->texture_image_view, nullptr);
+		//vkDestroyImage(*_get_instance_vulkan()->_get_device(), texture->texture_image, nullptr);
+		//vmaFreeMemory(*_get_instance_vulkan()->get_allocator(), texture->texture_image_allocation);
+		//info.texture_mem -= texture->total_data_size;
 		texture_owner.free(p_rid);
 		memdelete(texture);
+	} else {
+		return false;
 	}
 	return true;
 }
