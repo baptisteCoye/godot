@@ -16,6 +16,71 @@ public:
 	RenderingContextVulkan_Win *_get_instance_vulkan();
 	Vector<VkDescriptorSet> *_get_descriptor_sets();
 
+	void _update_uniform_buffer(uint32_t current_image) {
+		//state.ubo_data.model_matrix.set_identity();
+		//state.ubo_data.view_matrix = look_at(Vector3(2.f, 2.f, 2.f), Vector3(0.f, 0.f, 0.f), Vector3(0.f, 0.f, 1.f));
+		//state.ubo_data.projection_matrix.set_perspective(
+		//		45.f,
+		//		get_instance_vulkan()->get_swap_chain_extent().width / (float)get_instance_vulkan()->get_swap_chain_extent().height,
+		//		0.1f,
+		//		10.f,
+		//		false);
+		CameraMatrix identity;
+		identity.set_identity();
+		for (size_t i = 0; i < 4; i++) {
+			for (size_t j = 0; j < 4; j++) {
+				state.canvas_item_ubo_data.projection_matrix[i * 4 + j] = identity.matrix[i][j];
+			}
+		}
+
+		for (size_t i = 0; i < 4; i++) {
+			for (size_t j = 0; j < 4; j++) {
+				state.canvas_item_ubo_data.modelview_matrix[i * 4 + j] = identity.matrix[i][j];
+			}
+		}
+
+		CameraMatrix correction;
+		correction.set_identity();
+		correction.matrix[1][1] = -1;
+		correction.matrix[2][2] = 1.f / 2.f;
+		correction.matrix[2][3] = 1.f / 2.f;
+		for (size_t i = 0; i < 4; i++) {
+			for (size_t j = 0; j < 4; j++) {
+				state.canvas_item_ubo_data.projection_matrix[i * 4 + j] = correction.matrix[i][j];
+			}
+		}
+
+		void *mapped_data;
+		vmaMapMemory(*_get_instance_vulkan()->get_allocator(),
+				state.allocation_uniforms[current_image], &mapped_data);
+		memcpy(mapped_data, &state.canvas_item_ubo_data, sizeof(state.canvas_item_ubo_data));
+		vmaUnmapMemory(*_get_instance_vulkan()->get_allocator(), state.allocation_uniforms[current_image]);
+	}
+
+	void _create_uniform_buffers() {
+		VkDeviceSize buffer_size = sizeof(state.canvas_item_ubo_data);
+		state.uniform_buffers.resize(_get_instance_vulkan()->_get_swap_chain_images()->size());
+		state.allocation_uniforms.resize(_get_instance_vulkan()->_get_swap_chain_images()->size());
+
+		for (size_t i = 0; i < _get_instance_vulkan()->_get_swap_chain_images()->size(); i++) {
+			_create_buffer_host_cpu_to_gpu(*_get_instance_vulkan()->get_allocator(), buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, state.uniform_buffers.write[i], state.allocation_uniforms.write[i]);
+		}
+	}
+
+	void _create_buffer_host_cpu_to_gpu(VmaAllocator allocator, VkDeviceSize size, VkBufferUsageFlags usage, VkBuffer &buffer, VmaAllocation &allocation) {
+		VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+		buffer_info.size = size;
+		buffer_info.usage = usage;
+		buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		VmaAllocationCreateInfo alloc_create_info = {};
+		alloc_create_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+		if (vmaCreateBuffer(allocator, &buffer_info, &alloc_create_info, &buffer, &allocation, NULL) != VK_SUCCESS) {
+			CRASH_COND("Can't Create Buffer.");
+		}
+	}
+
 public:
 	RasterizerStorageVulkan *storage;
 
@@ -26,8 +91,16 @@ public:
 	};
 
 	struct State {
-		CanvasItemUBO canvas_item_ubo_data;
-		//GLuint canvas_item_ubo;
+		struct CanvasItemUBO {
+			float projection_matrix[16];
+			float time;
+			uint8_t padding[12];
+			float modelview_matrix[16];
+			float extra_matrix[16];
+		} canvas_item_ubo_data;
+
+		Vector<VkBuffer> uniform_buffers;
+		Vector<VmaAllocation> allocation_uniforms;
 		bool canvas_texscreen_used;
 		CanvasShaderVulkan canvas_shader;
 		//CanvasShadowShaderGLES3 canvas_shadow_shader;

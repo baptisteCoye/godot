@@ -13,20 +13,12 @@ class RasterizerSceneVulkan : public RasterizerScene {
 
 public:
 	CameraMatrix _look_at(const Vector3 eye, const Vector3 center, const Vector3 up);
-	void _update_uniform_buffer(uint32_t current_image);
-	void _create_uniform_buffers();
-	void _create_buffer_host_cpu_to_gpu(VmaAllocator allocator, VkDeviceSize size, VkBufferUsageFlags usage, VkBuffer &buffer, VmaAllocation &allocation);
 
 public:
-	Vector<VkBuffer> uniform_buffers;
-	Vector<VmaAllocation> allocation_uniforms;
 	RasterizerStorageVulkan *storage;
 
 	struct State {
 		struct SceneDataUBO {
-			CameraMatrix model_matrix;
-			CameraMatrix view_matrix;
-			CameraMatrix projection_matrix;
 		} ubo_data;
 	} state;
 
@@ -101,10 +93,8 @@ public:
 	void set_scene_pass(uint64_t p_pass);
 	void set_debug_draw_mode(VS::ViewportDebugDraw p_debug_draw);
 
-
 	bool free(RID p_rid);
 	void initialize();
-
 
 	RasterizerSceneVulkan(RenderingContext *p_context);
 	~RasterizerSceneVulkan();
