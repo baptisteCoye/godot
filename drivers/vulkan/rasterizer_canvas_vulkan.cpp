@@ -118,10 +118,10 @@ void RasterizerCanvasVulkan::draw_generic_textured_rect(Rect2 screenrect, struct
 	storage->data.indices.push_back(3);
 	storage->data.indices.push_back(0);
 
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, -screenrect.size.height), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) });
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, -screenrect.size.height), Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f) });
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, screenrect.size.height), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) });
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, screenrect.size.height), Vector3(1.0f, 1.0f, 1.0f), Vector2(1.0f, 1.0f) });
+	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, -screenrect.size.height), Color(1.0f, 0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) });
+	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, -screenrect.size.height), Color(0.0f, 1.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) });
+	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, screenrect.size.height), Color(0.0f, 0.0f, 1.0f, 1.0f), Vector2(0.0f, 1.0f) });
+	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, screenrect.size.height), Color(1.0f, 1.0f, 1.0f, 1.0f), Vector2(1.0f, 1.0f) });
 
 	VkDeviceSize buffer_size = sizeof(storage->data.indices[0]) * storage->data.indices.size();
 	VkBuffer staging_buffer;
