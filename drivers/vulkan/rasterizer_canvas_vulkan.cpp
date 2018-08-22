@@ -96,6 +96,7 @@ void RasterizerCanvasVulkan::draw_window_margins(int *black_margin, RID *black_i
 }
 
 void RasterizerCanvasVulkan::initialize() {
+	_create_uniform_buffers();
 }
 
 RasterizerCanvasVulkan::RasterizerCanvasVulkan(RenderingContext *p_context) {

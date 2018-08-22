@@ -88,7 +88,7 @@ void RasterizerVulkan::_create_descriptor_sets() {
 
 	for (size_t i = 0; i < get_instance_vulkan()->_get_swap_chain_images()->size(); i++) {
 		VkDescriptorBufferInfo buffer_info = {};
-		buffer_info.buffer = get_scene()->uniform_buffers[i];
+		buffer_info.buffer = get_canvas()->state.uniform_buffers[i];
 		buffer_info.offset = 0;
 		buffer_info.range = VK_WHOLE_SIZE;
 
@@ -210,7 +210,7 @@ void RasterizerVulkan::set_boot_image(const Ref<Image> &p_image, const Color &p_
 	_create_vertex_buffer(storage->data.vertices, storage->data.vertex_buffer);
 
 	canvas->draw_generic_textured_rect(screenrect, Rect2(0, 0, 1, 1));
-	scene->_update_uniform_buffer(storage->frame.image_index);
+	canvas->_update_uniform_buffer(storage->frame.image_index);
 	canvas->canvas_end();
 
 	_create_descriptor_set_layout();
@@ -234,7 +234,7 @@ void RasterizerVulkan::_render_pass_begin() {
 void RasterizerVulkan::update_descriptors() {
 	for (size_t i = 0; i < get_instance_vulkan()->_get_swap_chain_images()->size(); i++) {
 		VkDescriptorBufferInfo buffer_info = {};
-		buffer_info.buffer = get_scene()->uniform_buffers[i];
+		buffer_info.buffer = get_canvas()->state.uniform_buffers[i];
 		buffer_info.offset = 0;
 		buffer_info.range = VK_WHOLE_SIZE;
 
@@ -348,7 +348,7 @@ void RasterizerVulkan::set_current_render_target(RID p_render_target) {
 		ERR_FAIL_COND(!rt);
 		storage->frame.clear_request = false;
 
-		scene->_update_uniform_buffer(storage->frame.image_index);
+		canvas->_update_uniform_buffer(storage->frame.image_index);
 
 		VkCommandBufferAllocateInfo alloc_info = {};
 		alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -994,7 +994,7 @@ void RasterizerVulkan::_cleanup() {
 	vmaDestroyBuffer(*get_instance_vulkan()->get_allocator(), storage->data.index_buffer, storage->data.allocation_index);
 	vmaDestroyBuffer(*get_instance_vulkan()->get_allocator(), storage->data.vertex_buffer, storage->data.allocation_vertex);
 	for (size_t i = 0; i < get_instance_vulkan()->_get_swap_chain_images()->size(); i++) {
-		vmaDestroyBuffer(*get_instance_vulkan()->get_allocator(), scene->uniform_buffers[i], scene->allocation_uniforms[i]);
+		vmaDestroyBuffer(*get_instance_vulkan()->get_allocator(), canvas->state.uniform_buffers[i], canvas->state.allocation_uniforms[i]);
 	}
 	vmaDestroyAllocator(*get_instance_vulkan()->get_allocator());
 	for (size_t i = 0; i < get_instance_vulkan()->max_frames_in_flight; i++) {

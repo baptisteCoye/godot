@@ -194,32 +194,6 @@ CameraMatrix RasterizerSceneVulkan::_look_at(const Vector3 eye, const Vector3 ce
 	return m;
 }
 
-void RasterizerSceneVulkan::_update_uniform_buffer(uint32_t current_image) {
-	//state.ubo_data.model_matrix.set_identity();
-	//state.ubo_data.view_matrix = look_at(Vector3(2.f, 2.f, 2.f), Vector3(0.f, 0.f, 0.f), Vector3(0.f, 0.f, 1.f));
-	//state.ubo_data.projection_matrix.set_perspective(
-	//		45.f,
-	//		get_instance_vulkan()->get_swap_chain_extent().width / (float)get_instance_vulkan()->get_swap_chain_extent().height,
-	//		0.1f,
-	//		10.f,
-	//		false);
-	state.ubo_data.model_matrix.set_identity();
-	state.ubo_data.view_matrix.set_identity();
-	state.ubo_data.projection_matrix.set_identity();
-	CameraMatrix correction;
-	correction.set_identity();
-	correction.matrix[1][1] = -1;
-	correction.matrix[2][2] = 1.f / 2.f;
-	correction.matrix[2][3] = 1.f / 2.f;
-	state.ubo_data.projection_matrix = correction * state.ubo_data.projection_matrix * state.ubo_data.view_matrix * state.ubo_data.model_matrix;
-
-	void *mapped_data;
-	vmaMapMemory(*get_instance_vulkan()->get_allocator(),
-			allocation_uniforms[current_image], &mapped_data);
-	memcpy(mapped_data, &state.ubo_data, sizeof(state.ubo_data));
-	vmaUnmapMemory(*get_instance_vulkan()->get_allocator(), allocation_uniforms[current_image]);
-}
-
 void RasterizerSceneVulkan::render_shadow(RID p_light, RID p_shadow_atlas, int p_pass, InstanceBase **p_cull_result, int p_cull_count) {
 }
 
@@ -229,36 +203,11 @@ void RasterizerSceneVulkan::set_scene_pass(uint64_t p_pass) {
 void RasterizerSceneVulkan::set_debug_draw_mode(VS::ViewportDebugDraw p_debug_draw) {
 }
 
-void RasterizerSceneVulkan::_create_buffer_host_cpu_to_gpu(VmaAllocator allocator, VkDeviceSize size, VkBufferUsageFlags usage, VkBuffer &buffer, VmaAllocation &allocation) {
-	VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	buffer_info.size = size;
-	buffer_info.usage = usage;
-	buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	VmaAllocationCreateInfo alloc_create_info = {};
-	alloc_create_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-	if (vmaCreateBuffer(allocator, &buffer_info, &alloc_create_info, &buffer, &allocation, NULL) != VK_SUCCESS) {
-		CRASH_COND("Can't Create Buffer.");
-	}
-}
-
 bool RasterizerSceneVulkan::free(RID p_rid) {
 	return true;
 }
 
 void RasterizerSceneVulkan::initialize() {
-	_create_uniform_buffers();
-}
-
-void RasterizerSceneVulkan::_create_uniform_buffers() {
-	VkDeviceSize buffer_size = sizeof(state.ubo_data);
-	uniform_buffers.resize(get_instance_vulkan()->_get_swap_chain_images()->size());
-	allocation_uniforms.resize(get_instance_vulkan()->_get_swap_chain_images()->size());
-
-	for (size_t i = 0; i < get_instance_vulkan()->_get_swap_chain_images()->size(); i++) {
-		_create_buffer_host_cpu_to_gpu(*get_instance_vulkan()->get_allocator(), buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uniform_buffers.write[i], allocation_uniforms.write[i]);
-	}
 }
 
 RasterizerSceneVulkan::RasterizerSceneVulkan(RenderingContext *p_context) {
