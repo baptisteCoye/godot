@@ -40,13 +40,10 @@ uniform ColorTexpixel {
     highp vec2 color_texpixel_size;
 };
 
-layout(std140) uniform CanvasItemData { //ubo:0
+layout(std140, binding=0) uniform CanvasItemData {
 
 	highp mat4 projection_matrix;
 	highp float time;
-};
-
-uniform Matrix {
     uniform highp mat4 modelview_matrix;
     uniform highp mat4 extra_matrix;
 };
