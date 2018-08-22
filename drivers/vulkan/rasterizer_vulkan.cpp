@@ -185,10 +185,10 @@ void RasterizerVulkan::set_boot_image(const Ref<Image> &p_image, const Color &p_
 	storage->data.indices.push_back(0);
 
 	storage->data.vertices.clear();
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, -screenrect.size.height), Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) });
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, -screenrect.size.height), Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f) });
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, screenrect.size.height), Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) });
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, screenrect.size.height), Vector3(1.0f, 1.0f, 1.0f), Vector2(1.0f, 1.0f) });
+	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, -screenrect.size.height), Color(1.0f, 0.0f, 0.0f, 1.f), Vector2(1.0f, 0.0f) });
+	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, -screenrect.size.height), Color(0.0f, 1.0f, 0.0f, 1.f), Vector2(0.0f, 0.0f) });
+	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, screenrect.size.height), Color(0.0f, 0.0f, 1.0f, 1.f), Vector2(0.0f, 1.0f) });
+	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, screenrect.size.height), Color(1.0f, 1.0f, 1.0f, 1.f), Vector2(1.0f, 1.0f) });
 
 	if (OS::get_singleton()->get_window_per_pixel_transparency_enabled()) {
 		storage->frame.clear_request_color = Color(0.0f, 0.0f, 0.0f, 0.0f);
@@ -567,36 +567,8 @@ void RasterizerVulkan::_create_graphics_pipeline() {
 	VkShaderModuleCreateInfo vert_create_info = {};
 	vert_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
-	const char *vert = "#version 450\n"
-					   "#extension GL_ARB_separate_shader_objects : enable\n"
-					   "\n"
-					   "layout(binding = 0) uniform UniformBufferObject {\n"
-					   "    mat4 model;\n"
-					   "    mat4 view;\n"
-					   "    mat4 proj;\n"
-					   "} ubo;\n"
-					   "\n"
-					   "layout(location = 0) in vec2 inPosition;\n"
-					   "layout(location = 1) in vec3 inColor;\n"
-					   "layout(location = 2) in vec2 inTexCoord;\n"
-					   "\n"
-					   "layout(location = 0) out vec3 fragColor;\n"
-					   "layout(location = 1) out vec2 fragTexCoord;\n"
-					   "\n"
-					   "out gl_PerVertex {\n"
-					   "    vec4 gl_Position;\n"
-					   "};\n"
-					   "\n"
-					   "void main() {\n"
-					   "    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 0.0, 1.0);\n"
-					   "    fragColor = inColor;\n"
-					   "    fragTexCoord = inTexCoord;\n"
-					   "}";
-	PoolByteArray v;
-	ShaderVulkan::get_active()->compile_shader_fail(vert, "shader.vert", ShaderVulkan::shaderc_vertex_shader, v);
-
-	vert_create_info.codeSize = v.size();
-	vert_create_info.pCode = reinterpret_cast<const uint32_t *>(v.read().ptr());
+	vert_create_info.codeSize = canvas->state.canvas_shader.get_vert_program().size();
+	vert_create_info.pCode = reinterpret_cast<const uint32_t *>(canvas->state.canvas_shader.get_vert_program().read().ptr());
 
 	if (vkCreateShaderModule(*get_instance_vulkan()->_get_device(), &vert_create_info, NULL, &vert_shader_module) != VK_SUCCESS) {
 		CRASH_COND("Can't Create Shader Module");
@@ -605,23 +577,8 @@ void RasterizerVulkan::_create_graphics_pipeline() {
 	VkShaderModuleCreateInfo frag_create_info = {};
 	frag_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
-	const char *frag = "#version 450\n"
-					   "#extension GL_ARB_separate_shader_objects : enable\n"
-					   "\n"
-					   "layout(binding = 1) uniform sampler2D texSampler;\n"
-					   "\n"
-					   "layout(location = 0) in vec3 fragColor;\n"
-					   "layout(location = 1) in vec2 fragTexCoord;\n"
-					   "\n"
-					   "layout(location = 0) out vec4 outColor;\n"
-					   "\n"
-					   "void main() {\n"
-					   "    outColor = texture(texSampler, fragTexCoord);\n"
-					   "}";
-	PoolByteArray f;
-	ShaderVulkan::get_active()->compile_shader_fail(frag, "shader.frag", ShaderVulkan::shaderc_fragment_shader, f);
-	frag_create_info.codeSize = f.size();
-	frag_create_info.pCode = reinterpret_cast<const uint32_t *>(f.read().ptr());
+	frag_create_info.codeSize = canvas->state.canvas_shader.get_frag_program().size();
+	frag_create_info.pCode = reinterpret_cast<const uint32_t *>(canvas->state.canvas_shader.get_frag_program().read().ptr());
 
 	if (vkCreateShaderModule(*get_instance_vulkan()->_get_device(), &frag_create_info, NULL, &frag_shader_module) != VK_SUCCESS) {
 		CRASH_COND("Can't Create Shader Module");

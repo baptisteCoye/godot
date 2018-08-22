@@ -13,7 +13,7 @@ private:
 public:
 	struct Vertex {
 		Vector2 pos;
-		Vector3 color;
+		Color color;
 		Vector2 tex_coord;
 		static VkVertexInputBindingDescription get_binding_description() {
 			VkVertexInputBindingDescription bindingDescription = {};
@@ -35,12 +35,12 @@ public:
 			attribute_descriptions.write[0].offset = offsetof(Vertex, pos);
 
 			attribute_descriptions.write[1].binding = 0;
-			attribute_descriptions.write[1].location = 1;
-			attribute_descriptions.write[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attribute_descriptions.write[1].location = 3;
+			attribute_descriptions.write[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
 			attribute_descriptions.write[1].offset = offsetof(Vertex, color);
 
 			attribute_descriptions.write[2].binding = 0;
-			attribute_descriptions.write[2].location = 2;
+			attribute_descriptions.write[2].location = 1;
 			attribute_descriptions.write[2].format = VK_FORMAT_R32G32_SFLOAT;
 			attribute_descriptions.write[2].offset = offsetof(Vertex, tex_coord);
 
