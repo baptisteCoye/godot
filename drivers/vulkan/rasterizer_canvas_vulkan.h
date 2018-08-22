@@ -84,12 +84,6 @@ public:
 public:
 	RasterizerStorageVulkan *storage;
 
-	struct CanvasItemUBO {
-		float projection_matrix[16];
-		float time;
-		uint8_t padding[12];
-	};
-
 	struct State {
 		struct CanvasItemUBO {
 			float projection_matrix[16];
