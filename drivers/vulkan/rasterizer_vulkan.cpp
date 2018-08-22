@@ -4,6 +4,7 @@
 #include "platform/windows/rendering_context_vulkan_win.h"
 #include "platform/windows/vma_usage.h"
 #include "shaders/canvas.glsl.gen.h"
+#include "thirdparty/spirv-cross/spirv_cross.hpp"
 
 Rasterizer *MakeCurrentFunctVulkan::make_current() {
 	return memnew(RasterizerVulkan(context));
@@ -216,7 +217,7 @@ void RasterizerVulkan::set_boot_image(const Ref<Image> &p_image, const Color &p_
 	_create_descriptor_set_layout();
 
 	_render_pass_begin();
-	
+
 	end_frame(true);
 
 	storage->free(texture); // free since it's only one frame that stays there
@@ -500,6 +501,25 @@ void RasterizerVulkan::_create_render_pass_begin() {
 }
 
 void RasterizerVulkan::_create_descriptor_set_layout() {
+	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_TEXTURE_RECT, true);
+	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_LIGHTING, false);
+	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_SHADOWS, false);
+	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::SHADOW_FILTER_NEAREST, false);
+	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::SHADOW_FILTER_PCF5, false);
+	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::SHADOW_FILTER_PCF13, false);
+	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_DISTANCE_FIELD, false);
+	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_NINEPATCH, false);
+	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_SKELETON, false);
+
+	canvas->state.canvas_shader.set_custom_shader(0);
+
+	canvas->state.canvas_shader.bind();
+	spirv_cross::Compiler vert_compiler(reinterpret_cast<const uint32_t *>(canvas->state.canvas_shader.get_vert_program().read().ptr()), canvas->state.canvas_shader.get_vert_program().size() / (sizeof(uint32_t) / (sizeof(uint8_t))));
+	spirv_cross::ShaderResources vert_resource = vert_compiler.get_shader_resources();
+
+	spirv_cross::Compiler frag_comp(reinterpret_cast<const uint32_t *>(canvas->state.canvas_shader.get_frag_program().read().ptr()), canvas->state.canvas_shader.get_frag_program().size() / (sizeof(uint32_t) / (sizeof(uint8_t))));
+	spirv_cross::ShaderResources frag_resource = frag_comp.get_shader_resources();
+
 	VkDescriptorSetLayoutBinding ubo_layout_binding = {};
 	ubo_layout_binding.binding = 0;
 	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -531,20 +551,6 @@ void RasterizerVulkan::_create_descriptor_set_layout() {
 void RasterizerVulkan::_create_graphics_pipeline() {
 	VkShaderModule vert_shader_module;
 	VkShaderModule frag_shader_module;
-
-	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_TEXTURE_RECT, true);
-	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_LIGHTING, false);
-	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_SHADOWS, false);
-	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::SHADOW_FILTER_NEAREST, false);
-	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::SHADOW_FILTER_PCF5, false);
-	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::SHADOW_FILTER_PCF13, false);
-	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_DISTANCE_FIELD, false);
-	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_NINEPATCH, false);
-	canvas->state.canvas_shader.set_conditional(CanvasShaderVulkan::USE_SKELETON, false);
-
-	canvas->state.canvas_shader.set_custom_shader(0);
-
-	canvas->state.canvas_shader.bind();
 	//canvas->state.canvas_shader.set_uniform(CanvasShaderVulkan::FINAL_MODULATE, Color(1, 1, 1, 1));
 	//canvas->state.canvas_shader.set_uniform(CanvasShaderVulkan::MODELVIEW_MATRIX, Transform2D());
 	//canvas->state.canvas_shader.set_uniform(CanvasShaderVulkan::EXTRA_MATRIX, Transform2D());
