@@ -126,7 +126,7 @@ def include_file_in_legacygl_header(filename, header_data, depth):
                 x = x.strip()
                 x = x[x.rfind(" ") + 1:]
                 if x.find("[") != -1:
-                    # unfiorm array
+                    # uniform array
                     x = x[:x.find("[")]
 
                 if not x in header_data.ubo_names:

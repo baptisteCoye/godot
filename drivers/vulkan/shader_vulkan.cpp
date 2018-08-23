@@ -33,6 +33,8 @@
 #include "print_string.h"
 
 #include "thirdparty/shaderc/src/libshaderc/include/shaderc/shaderc.h"
+#include "thirdparty/spirv-cross/spirv_cfg.hpp"
+#include "thirdparty/spirv-cross/spirv_cross.hpp"
 #include "ustring.h"
 
 #define GLES_OVER_GL
@@ -209,12 +211,78 @@ PoolByteArray ShaderVulkan::get_vert_program() const {
 	return version->vert;
 }
 
+void ShaderVulkan::get_descriptor_bindings(PoolByteArray &p_program, Vector<ShaderVulkan::SPIRVResource> &p_bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkBuffer p_uniform) {
+
+	spirv_cross::Compiler comp(reinterpret_cast<const uint32_t *>(p_program.read().ptr()), p_program.size() / (sizeof(uint32_t) / (sizeof(uint8_t))));
+	spirv_cross::ShaderResources resources = comp.get_shader_resources();
+
+	// https://github.com/KhronosGroup/SPIRV-Cross/wiki/Reflection-API-user-guide
+
+	//Only one stage flag?
+	VkShaderStageFlags flags;
+	if (comp.get_entry_points_and_stages()[0].execution_model == spv::ExecutionModelFragment) {
+		flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	} else if (comp.get_entry_points_and_stages()[0].execution_model == spv::ExecutionModelVertex) {
+		flags = VK_SHADER_STAGE_VERTEX_BIT;
+	} else {
+		ERR_PRINT("Can't create descriptor set, unknown stage.");
+	}
+
+	for (size_t i = 0; i < resources.uniform_buffers.size(); i++) {
+		spirv_cross::Resource r = resources.uniform_buffers[i];
+		uint32_t set = comp.get_decoration(r.id, spv::DecorationDescriptorSet);
+
+		const spirv_cross::SPIRType &base_type = comp.get_type(r.base_type_id);
+		const spirv_cross::SPIRType &type = comp.get_type(r.base_type_id);
+
+		ERR_EXPLAIN("Can't create descriptor set, more than one entry point.")
+		ERR_CONTINUE(comp.get_entry_points_and_stages().size() != 1)
+
+		VkDescriptorSetLayoutBinding sampler_layout_binding = {};
+		sampler_layout_binding.binding = comp.get_decoration(r.id, spv::DecorationBinding);
+		sampler_layout_binding.descriptorCount = 1;
+		sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		sampler_layout_binding.pImmutableSamplers = nullptr;
+
+		sampler_layout_binding.stageFlags = flags;
+		ShaderVulkan::SPIRVResource resource;
+		resource.set = set;
+		resource.binding = sampler_layout_binding;
+		p_bindings.push_back(resource);
+	}
+
+	for (size_t i = 0; i < resources.sampled_images.size(); i++) {
+		spirv_cross::Resource r = resources.sampled_images[i];
+		uint32_t set = comp.get_decoration(r.id, spv::DecorationDescriptorSet);
+
+		const spirv_cross::SPIRType &type = comp.get_type(r.base_type_id);
+		std::vector<spirv_cross::EntryPoint> entry_points_and_stages = comp.get_entry_points_and_stages();
+
+		ERR_EXPLAIN("Can't create descriptor set, more than one entry point.")
+		ERR_CONTINUE(entry_points_and_stages.size() != 1)
+
+		VkDescriptorSetLayoutBinding sampler_layout_binding = {};
+		sampler_layout_binding.binding = comp.get_decoration(r.id, spv::DecorationBinding);
+		sampler_layout_binding.descriptorCount = 1;
+		sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		sampler_layout_binding.pImmutableSamplers = nullptr;
+
+		sampler_layout_binding.stageFlags = flags;
+
+		ShaderVulkan::SPIRVResource resource;
+		resource.set = set;
+		resource.binding = sampler_layout_binding;
+		p_bindings.push_back(resource);
+	}
+}
+
 void ShaderVulkan::compile_shader(const String p_text, const String p_input_file_name, const shader_kind p_kind, PoolByteArray &output, String &error_message, int32_t &num_warnings, int32_t &num_errors) {
 	shaderc_shader_kind kind = shaderc_shader_kind(p_kind);
 	const shaderc_compiler_t compiler = shaderc_compiler_initialize();
 	const CharString temp = p_text.utf8();
 	shaderc_compile_options_t opts = shaderc_compile_options_initialize();
 	shaderc_compile_options_set_target_env(opts, shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_1);
+	shaderc_compile_options_set_generate_debug_info(opts);
 	shaderc_compile_options_set_optimization_level(opts, shaderc_optimization_level_performance);
 	shaderc_compilation_result_t result = shaderc_compile_into_spv(
 			compiler, temp.ptr(), temp.length(),

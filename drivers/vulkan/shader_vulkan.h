@@ -44,6 +44,8 @@
 #include "hash_map.h"
 #include "map.h"
 #include "variant.h"
+#include "platform/windows/glad_vulkan_win.h"
+#include "drivers/vulkan/rasterizer_storage_vulkan.h"
 
 class ShaderVulkan {
 protected:
@@ -211,6 +213,12 @@ protected:
 	ShaderVulkan();
 
 public:
+	struct SPIRVResource {
+		uint32_t set;
+		VkDescriptorSetLayoutBinding binding;
+		VkWriteDescriptorSet write_bindings;
+	};
+
 	enum {
 		CUSTOM_SHADER_DISABLED = 0
 	};
@@ -246,11 +254,13 @@ public:
 		shaderc_spirv_assembly,
 	} shader_kind;
 
+	void get_descriptor_bindings(PoolByteArray &p_program, Vector<ShaderVulkan::SPIRVResource> &p_bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkBuffer p_uniform);
+		
 	void compile_shader(const String p_text, const String p_input_file_name, const shader_kind p_kind, PoolByteArray &output, String &error_message, int32_t &num_warnings, int32_t &num_errors);
 
 	void compile_shader_fail(const String p_source, const String p_input_file_name, const shader_kind p_kind, PoolByteArray &p_output);
 
-	static _FORCE_INLINE_ ShaderVulkan *get_active();;
+	static _FORCE_INLINE_ ShaderVulkan *get_active();
 	bool bind();
 	void unbind();
 	void bind_uniforms();
@@ -269,7 +279,7 @@ public:
 
 	uint32_t get_version() const;
 
-	void set_uniform_camera(int p_idx, const CameraMatrix &p_mat);;
+	void set_uniform_camera(int p_idx, const CameraMatrix &p_mat);
 
 	_FORCE_INLINE_ void set_texture_uniform(int p_idx, const Variant &p_value);
 
