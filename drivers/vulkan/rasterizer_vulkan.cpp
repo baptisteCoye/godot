@@ -87,27 +87,6 @@ void RasterizerVulkan::_create_descriptor_sets() {
 		CRASH_COND("Can't Allocate Descriptor Sets.");
 	}
 
-	for (size_t i = 0; i < get_instance_vulkan()->_get_swap_chain_images()->size(); i++) {
-		VkDescriptorBufferInfo buffer_info = {};
-		buffer_info.buffer = get_canvas()->state.uniform_buffers[i];
-		buffer_info.offset = 0;
-		buffer_info.range = VK_WHOLE_SIZE;
-
-		VkWriteDescriptorSet buffer_descriptor = {};
-		buffer_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		buffer_descriptor.dstSet = (*canvas->_get_descriptor_sets())[i];
-		buffer_descriptor.dstBinding = 0;
-		buffer_descriptor.dstArrayElement = 0;
-		buffer_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		buffer_descriptor.descriptorCount = 1;
-		buffer_descriptor.pBufferInfo = &buffer_info;
-
-		Vector<VkWriteDescriptorSet> descriptor_writes;
-		descriptor_writes.push_back(buffer_descriptor);
-
-		vkUpdateDescriptorSets(*get_instance_vulkan()->_get_device(), descriptor_writes.size(), descriptor_writes.ptr(), 0, nullptr);
-	}
-
 	update_descriptors();
 }
 
@@ -234,6 +213,23 @@ void RasterizerVulkan::_render_pass_begin() {
 
 void RasterizerVulkan::update_descriptors() {
 	for (size_t i = 0; i < get_instance_vulkan()->_get_swap_chain_images()->size(); i++) {
+		Vector<ShaderVulkan::SPIRVResource> bindings;
+		canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_vert_program(), bindings, get_storage()->texture_owner, get_canvas()->state.uniform_buffers[i]);
+		canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_frag_program(), bindings, get_storage()->texture_owner, get_canvas()->state.uniform_buffers[i]);
+
+		Vector<VkWriteDescriptorSet> b;
+		for (size_t i = 0; i < bindings.size(); i++) {
+			//@TODO > one set
+			if (bindings[i].set == 0) {
+				b.push_back(bindings[i].write_bindings);
+			} else {
+				ERR_EXPLAIN("Can't update a descriptor with a set that isn't 0.");
+				ERR_CONTINUE(bindings[i].set);
+			}
+		}
+
+		Vector<VkWriteDescriptorSet> descriptor_writes;
+
 		VkDescriptorBufferInfo buffer_info = {};
 		buffer_info.buffer = get_canvas()->state.uniform_buffers[i];
 		buffer_info.offset = 0;
@@ -261,6 +257,10 @@ void RasterizerVulkan::update_descriptors() {
 		sampler_descriptor.descriptorCount = image_infos.size();
 		sampler_descriptor.pImageInfo = image_infos.ptr();
 
+		if (image_infos.size() != 0) {
+			descriptor_writes.push_back(sampler_descriptor);
+		}
+
 		VkWriteDescriptorSet buffer_descriptor = {};
 		buffer_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		buffer_descriptor.dstSet = (*canvas->_get_descriptor_sets())[i];
@@ -270,13 +270,58 @@ void RasterizerVulkan::update_descriptors() {
 		buffer_descriptor.descriptorCount = 1;
 		buffer_descriptor.pBufferInfo = &buffer_info;
 
-		Vector<VkWriteDescriptorSet> descriptor_writes;
 		descriptor_writes.push_back(buffer_descriptor);
-		if (image_infos.size() != 0) {
-			descriptor_writes.push_back(sampler_descriptor);
-		}
+
 		vkUpdateDescriptorSets(*get_instance_vulkan()->_get_device(), descriptor_writes.size(), descriptor_writes.ptr(), 0, nullptr);
 	}
+
+	//for (size_t i = 0; i < get_instance_vulkan()->_get_swap_chain_images()->size(); i++) {
+	//	Vector<VkWriteDescriptorSet> descriptor_writes;
+
+	//	VkDescriptorBufferInfo buffer_info = {};
+	//	buffer_info.buffer = get_canvas()->state.uniform_buffers[i];
+	//	buffer_info.offset = 0;
+	//	buffer_info.range = VK_WHOLE_SIZE;
+
+	//	List<RID> textures;
+	//	storage->texture_owner.get_owned_list(&textures);
+
+	//	Vector<VkDescriptorImageInfo> image_infos;
+	//	for (List<RID>::Element *E = textures.front(); E; E = E->next()) {
+	//		VkDescriptorImageInfo image_info = {};
+	//		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	//		RasterizerStorageVulkan::VulkanTexture *t = storage->texture_owner.getornull(E->get());
+	//		image_info.imageView = t->texture_image_view;
+	//		image_info.sampler = t->texture_sampler;
+	//		image_infos.push_back(image_info);
+	//	}
+
+	//	VkWriteDescriptorSet sampler_descriptor = {};
+	//	sampler_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	//	sampler_descriptor.dstSet = (*canvas->_get_descriptor_sets())[i];
+	//	sampler_descriptor.dstBinding = 1;
+	//	sampler_descriptor.dstArrayElement = 0;
+	//	sampler_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	//	sampler_descriptor.descriptorCount = image_infos.size();
+	//	sampler_descriptor.pImageInfo = image_infos.ptr();
+	//	
+	//	if (image_infos.size() != 0) {
+	//		descriptor_writes.push_back(sampler_descriptor);
+	//	}
+
+	//	VkWriteDescriptorSet buffer_descriptor = {};
+	//	buffer_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	//	buffer_descriptor.dstSet = (*canvas->_get_descriptor_sets())[i];
+	//	buffer_descriptor.dstBinding = 0;
+	//	buffer_descriptor.dstArrayElement = 0;
+	//	buffer_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	//	buffer_descriptor.descriptorCount = 1;
+	//	buffer_descriptor.pBufferInfo = &buffer_info;
+
+	//	descriptor_writes.push_back(buffer_descriptor);
+
+	//	//vkUpdateDescriptorSets(*get_instance_vulkan()->_get_device(), descriptor_writes.size(), descriptor_writes.ptr(), 0, nullptr);
+	//}
 }
 
 void RasterizerVulkan::initialize() {
@@ -514,34 +559,25 @@ void RasterizerVulkan::_create_descriptor_set_layout() {
 	canvas->state.canvas_shader.set_custom_shader(0);
 
 	canvas->state.canvas_shader.bind();
-	spirv_cross::Compiler vert_compiler(reinterpret_cast<const uint32_t *>(canvas->state.canvas_shader.get_vert_program().read().ptr()), canvas->state.canvas_shader.get_vert_program().size() / (sizeof(uint32_t) / (sizeof(uint8_t))));
-	spirv_cross::ShaderResources vert_resource = vert_compiler.get_shader_resources();
+	Vector<ShaderVulkan::SPIRVResource> bindings;
+	canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_vert_program(), bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture>(), VK_NULL_HANDLE);
+	canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_frag_program(), bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture>(), VK_NULL_HANDLE);
 
-	spirv_cross::Compiler frag_comp(reinterpret_cast<const uint32_t *>(canvas->state.canvas_shader.get_frag_program().read().ptr()), canvas->state.canvas_shader.get_frag_program().size() / (sizeof(uint32_t) / (sizeof(uint8_t))));
-	spirv_cross::ShaderResources frag_resource = frag_comp.get_shader_resources();
-
-	VkDescriptorSetLayoutBinding ubo_layout_binding = {};
-	ubo_layout_binding.binding = 0;
-	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	ubo_layout_binding.descriptorCount = 1;
-	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	ubo_layout_binding.pImmutableSamplers = NULL;
-
-	VkDescriptorSetLayoutBinding sampler_layout_binding = {};
-	sampler_layout_binding.binding = 1;
-	sampler_layout_binding.descriptorCount = 1;
-	sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	sampler_layout_binding.pImmutableSamplers = nullptr;
-	sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	Vector<VkDescriptorSetLayoutBinding> bindings;
-	bindings.push_back(ubo_layout_binding);
-	bindings.push_back(sampler_layout_binding);
+	Vector<VkDescriptorSetLayoutBinding> b;
+	for (size_t i = 0; i < bindings.size(); i++) {
+		//@TODO > one set
+		if (bindings[i].set == 0) {
+			b.push_back(bindings[i].binding);
+		} else {
+			ERR_EXPLAIN("Can't create a descriptor with a set that isn't 0.");
+			ERR_CONTINUE(bindings[i].set);
+		}
+	}
 
 	VkDescriptorSetLayoutCreateInfo layout_info = {};
 	layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layout_info.bindingCount = static_cast<uint32_t>(bindings.size());
-	layout_info.pBindings = bindings.ptr();
+	layout_info.bindingCount = static_cast<uint32_t>(b.size());
+	layout_info.pBindings = b.ptr();
 
 	if (vkCreateDescriptorSetLayout(*get_instance_vulkan()->_get_device(), &layout_info, nullptr, &descriptor_set_layout) != VK_SUCCESS) {
 		CRASH_COND("Can't Create Descriptor Set Layout.");
