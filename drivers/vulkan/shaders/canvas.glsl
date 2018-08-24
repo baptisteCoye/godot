@@ -284,6 +284,8 @@ layout(std140, binding = 14) uniform CanvasItemData { //ubo:10
 
 	highp mat4 projection_matrix;
 	highp float time;
+	highp mat4 modelview_matrix;
+	highp mat4 extra_matrix;
 };
 
 #ifdef USE_LIGHTING
