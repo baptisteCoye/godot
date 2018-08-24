@@ -1,9 +1,11 @@
+// clang-format off
 [vertex]
 
 // Avoid bug in glsl parser
 // uniform vec4 placeholder;
 
 layout(location = 0) in highp vec2 vertex;
+// clang-format on
 layout(location = 3) in vec4 color_attrib;
 
 #ifdef USE_SKELETON
@@ -60,7 +62,7 @@ layout(location = 3) out highp vec2 pixel_size_interp;
 
 #ifdef USE_SKELETON
 layout(std140, binding = 3) uniform Skeleton { //ubo:6
-	mediump sampler2D skeleton_texture; 
+	mediump sampler2D skeleton_texture;
 	highp mat4 skeleton_transform;
 	highp mat4 skeleton_transform_inverse;
 };
@@ -107,14 +109,13 @@ layout(std140, binding = 7) uniform Particles { //ubo:7
 
 #if defined(USE_MATERIAL)
 
+// clang-format off
 layout(std140, binding = 8) uniform UniformData{ //ubo:2
-
 MATERIAL_UNIFORMS
-
+	// clang-format on
 };
 
 #endif
-
 
 VERTEX_SHADER_GLOBALS
 
@@ -162,10 +163,11 @@ void main() {
 
 #define extra_matrix extra_matrix2
 
+	// clang-format off
 {
-
 VERTEX_SHADER_CODE
 }
+	// clang-format on
 
 #ifdef USE_NINEPATCH
 
@@ -255,9 +257,11 @@ VERTEX_SHADER_CODE
 #endif
 }
 
+// clang-format off
 [fragment]
 
 layout(binding = 9) uniform mediump sampler2D color_texture; // texunit:0
+// clang-format on
 layout(binding = 10) uniform mediump sampler2D normal_texture; // texunit:1
 
 layout(binding = 11) uniform ColorTexpixel { //ubo:8
@@ -333,10 +337,10 @@ layout(location = 0) out mediump vec4 frag_color;
 
 #if defined(USE_MATERIAL)
 
-layout(std140, binding=19) uniform UniformData{ //ubo:13
-
+// clang-format off
+layout(std140, binding = 19) uniform UniformData{ //ubo:13
 MATERIAL_UNIFORMS
-
+	// clang-format on
 };
 
 #endif
@@ -358,9 +362,9 @@ void light_compute(
 		vec4 color) {
 
 #if defined(USE_LIGHT_SHADER_CODE)
-
+	// clang-format off
 LIGHT_SHADER_CODE
-
+// clang-format on
 #endif
 }
 
@@ -497,7 +501,9 @@ void main() {
 		vec3 normal_map = vec3(0.0, 0.0, 1.0);
 #endif
 
+		// clang-format off
 FRAGMENT_SHADER_CODE
+		// clang-format on
 
 #if defined(NORMALMAP_USED)
 		normal = mix(vec3(0.0, 0.0, 1.0), normal_map * vec3(2.0, -2.0, 1.0) - vec3(1.0, -1.0, 0.0), normal_depth);
@@ -704,5 +710,4 @@ FRAGMENT_SHADER_CODE
 #endif
 	//color.rgb*=color.a;
 	frag_color = color;
-
 }
