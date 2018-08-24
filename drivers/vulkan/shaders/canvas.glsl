@@ -1,11 +1,9 @@
-// clang-format off
-[vertex]
+// [vertex]
 
 // Avoid bug in glsl parser
 // uniform vec4 placeholder;
 
 layout(location = 0) in highp vec2 vertex;
-// clang-format on
 layout(location = 3) in vec4 color_attrib;
 
 #ifdef USE_SKELETON
@@ -257,11 +255,8 @@ VERTEX_SHADER_CODE
 #endif
 }
 
-// clang-format off
-[fragment]
-
+// [fragment]
 layout(binding = 9) uniform mediump sampler2D color_texture; // texunit:0
-// clang-format on
 layout(binding = 10) uniform mediump sampler2D normal_texture; // texunit:1
 
 layout(binding = 11) uniform ColorTexpixel { //ubo:8
