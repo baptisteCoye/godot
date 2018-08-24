@@ -32,6 +32,7 @@
 
 #include "print_string.h"
 
+#include "shaders/canvas.glsl.gen.h"
 #include "thirdparty/shaderc/src/libshaderc/include/shaderc/shaderc.h"
 #include "thirdparty/spirv-cross/spirv_cfg.hpp"
 #include "thirdparty/spirv-cross/spirv_cross.hpp"
@@ -254,7 +255,13 @@ void ShaderVulkan::get_descriptor_bindings(PoolByteArray &p_program, Vector<Shad
 			return;
 		}
 
-		if (r.name != "CanvasItemData") {
+		bool found = false;
+		for (size_t i = 0; i < CanvasShaderVulkan::get_active()->ubo_count; i++) {
+			if (r.name != CanvasShaderVulkan::get_active()->ubo_pairs[i].name) {
+				found = true;
+			}
+		}
+		if (!found) {
 			return;
 		}
 
