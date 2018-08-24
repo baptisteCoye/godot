@@ -1,5 +1,8 @@
 [vertex]
 
+// Avoid bug in glsl parser
+// uniform vec4 placeholder;
+
 layout(location = 0) in highp vec2 vertex;
 layout(location = 3) in vec4 color_attrib;
 
