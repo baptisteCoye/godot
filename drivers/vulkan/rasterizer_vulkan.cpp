@@ -86,8 +86,6 @@ void RasterizerVulkan::_create_descriptor_sets() {
 	if (vkAllocateDescriptorSets(*get_instance_vulkan()->_get_device(), &alloc_info, &canvas->_get_descriptor_sets()->write[0]) != VK_SUCCESS) {
 		CRASH_COND("Can't Allocate Descriptor Sets.");
 	}
-
-	update_descriptors();
 }
 
 void RasterizerVulkan::_cleanup_swap_chain() {
@@ -179,21 +177,23 @@ void RasterizerVulkan::set_boot_image(const Ref<Image> &p_image, const Color &p_
 	begin_frame(0.0);
 
 	canvas->canvas_begin();
+	canvas->_create_uniform_buffers();
 
 	RID texture = storage->texture_create();
 	storage->texture_allocate(texture, p_image->get_width(), p_image->get_height(), 0, p_image->get_format(), VS::TextureType::TEXTURE_TYPE_2D);
 	storage->texture_set_data(texture, p_image);
+	_create_descriptor_set_layout();
+	_create_descriptor_sets();
 	_create_graphics_pipeline();
-	update_descriptors();
+	canvas->_update_uniform_buffer(storage->frame.image_index);
 
 	_create_index_buffer(storage->data.indices, storage->data.index_buffer);
 	_create_vertex_buffer(storage->data.vertices, storage->data.vertex_buffer);
 
 	canvas->draw_generic_textured_rect(screenrect, Rect2(0, 0, 1, 1));
-	canvas->_update_uniform_buffer(storage->frame.image_index);
-	canvas->canvas_end();
+	_update_descriptors();
 
-	_create_descriptor_set_layout();
+	canvas->canvas_end();
 
 	_render_pass_begin();
 
@@ -211,66 +211,14 @@ void RasterizerVulkan::_render_pass_begin() {
 	}
 }
 
-void RasterizerVulkan::update_descriptors() {
+void RasterizerVulkan::_update_descriptors() {
 	for (size_t i = 0; i < get_instance_vulkan()->_get_swap_chain_images()->size(); i++) {
 		Vector<ShaderVulkan::SPIRVResource> bindings;
-		canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_vert_program(), bindings, get_storage()->texture_owner, get_canvas()->state.uniform_buffers[i]);
-		canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_frag_program(), bindings, get_storage()->texture_owner, get_canvas()->state.uniform_buffers[i]);
-
-		Vector<VkWriteDescriptorSet> b;
-		for (size_t i = 0; i < bindings.size(); i++) {
-			//@TODO > one set
-			if (bindings[i].set == 0) {
-				b.push_back(bindings[i].write_bindings);
-			} else {
-				ERR_EXPLAIN("Can't update a descriptor with a set that isn't 0.");
-				ERR_CONTINUE(bindings[i].set);
-			}
-		}
-
 		Vector<VkWriteDescriptorSet> descriptor_writes;
-
-		VkDescriptorBufferInfo buffer_info = {};
-		buffer_info.buffer = get_canvas()->state.uniform_buffers[i];
-		buffer_info.offset = 0;
-		buffer_info.range = VK_WHOLE_SIZE;
-
-		List<RID> textures;
-		storage->texture_owner.get_owned_list(&textures);
-
-		Vector<VkDescriptorImageInfo> image_infos;
-		for (List<RID>::Element *E = textures.front(); E; E = E->next()) {
-			VkDescriptorImageInfo image_info = {};
-			image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			RasterizerStorageVulkan::VulkanTexture *t = storage->texture_owner.getornull(E->get());
-			image_info.imageView = t->texture_image_view;
-			image_info.sampler = t->texture_sampler;
-			image_infos.push_back(image_info);
-		}
-
-		VkWriteDescriptorSet sampler_descriptor = {};
-		sampler_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		sampler_descriptor.dstSet = (*canvas->_get_descriptor_sets())[i];
-		sampler_descriptor.dstBinding = 1;
-		sampler_descriptor.dstArrayElement = 0;
-		sampler_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		sampler_descriptor.descriptorCount = image_infos.size();
-		sampler_descriptor.pImageInfo = image_infos.ptr();
-
-		if (image_infos.size() != 0) {
-			descriptor_writes.push_back(sampler_descriptor);
-		}
-
-		VkWriteDescriptorSet buffer_descriptor = {};
-		buffer_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		buffer_descriptor.dstSet = (*canvas->_get_descriptor_sets())[i];
-		buffer_descriptor.dstBinding = 0;
-		buffer_descriptor.dstArrayElement = 0;
-		buffer_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		buffer_descriptor.descriptorCount = 1;
-		buffer_descriptor.pBufferInfo = &buffer_info;
-
-		descriptor_writes.push_back(buffer_descriptor);
+		VkDescriptorSet &set = canvas->_get_descriptor_sets()->write[i];
+		VkBuffer &buffer = get_canvas()->state.uniform_buffers.write[i];
+		canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_vert_program(), bindings, get_storage()->texture_owner, buffer, sizeof(canvas->state.canvas_item_ubo_data), set, descriptor_writes);
+		canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_frag_program(), bindings, get_storage()->texture_owner, buffer, sizeof(canvas->state.canvas_item_ubo_data), set, descriptor_writes);
 
 		vkUpdateDescriptorSets(*get_instance_vulkan()->_get_device(), descriptor_writes.size(), descriptor_writes.ptr(), 0, nullptr);
 	}
@@ -320,7 +268,7 @@ void RasterizerVulkan::update_descriptors() {
 
 	//	descriptor_writes.push_back(buffer_descriptor);
 
-	//	//vkUpdateDescriptorSets(*get_instance_vulkan()->_get_device(), descriptor_writes.size(), descriptor_writes.ptr(), 0, nullptr);
+	//	vkUpdateDescriptorSets(*get_instance_vulkan()->_get_device(), descriptor_writes.size(), descriptor_writes.ptr(), 0, nullptr);
 	//}
 }
 
@@ -334,10 +282,10 @@ void RasterizerVulkan::initialize() {
 	scene->initialize();
 	_create_command_pool();
 	_create_descriptor_pool();
-	_create_descriptor_set_layout();
+	//_create_descriptor_set_layout();
 
 	_create_sync_objects();
-	_create_descriptor_sets();
+	//_create_descriptor_sets();
 }
 
 void RasterizerVulkan::begin_frame(double frame_step) {
@@ -560,8 +508,10 @@ void RasterizerVulkan::_create_descriptor_set_layout() {
 
 	canvas->state.canvas_shader.bind();
 	Vector<ShaderVulkan::SPIRVResource> bindings;
-	canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_vert_program(), bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture>(), VK_NULL_HANDLE);
-	canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_frag_program(), bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture>(), VK_NULL_HANDLE);
+	VkBuffer empty_buffer = VK_NULL_HANDLE;
+	VkDescriptorSet empty_set = VK_NULL_HANDLE;
+	canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_vert_program(), bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture>(), empty_buffer, 0, empty_set, Vector<VkWriteDescriptorSet>());
+	canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_frag_program(), bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture>(), empty_buffer, 0, empty_set, Vector<VkWriteDescriptorSet>());
 
 	Vector<VkDescriptorSetLayoutBinding> b;
 	for (size_t i = 0; i < bindings.size(); i++) {
