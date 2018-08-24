@@ -211,7 +211,7 @@ PoolByteArray ShaderVulkan::get_vert_program() const {
 	return version->vert;
 }
 
-void ShaderVulkan::get_descriptor_bindings(PoolByteArray &p_program, Vector<ShaderVulkan::SPIRVResource> &p_bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkBuffer p_uniform) {
+void ShaderVulkan::get_descriptor_bindings(PoolByteArray &p_program, Vector<ShaderVulkan::SPIRVResource> &p_bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkBuffer &p_uniform, size_t p_uniform_size, VkDescriptorSet &p_descriptor_set, Vector<VkWriteDescriptorSet> &p_write_descriptor_set) {
 
 	spirv_cross::Compiler comp(reinterpret_cast<const uint32_t *>(p_program.read().ptr()), p_program.size() / (sizeof(uint32_t) / (sizeof(uint8_t))));
 	spirv_cross::ShaderResources resources = comp.get_shader_resources();
@@ -249,7 +249,33 @@ void ShaderVulkan::get_descriptor_bindings(PoolByteArray &p_program, Vector<Shad
 		resource.set = set;
 		resource.binding = sampler_layout_binding;
 		p_bindings.push_back(resource);
+
+		if (p_uniform == VK_NULL_HANDLE) {
+			return;
+		}
+
+		if (r.name != "CanvasItemData") {
+			return;
+		}
+
+		VkDescriptorBufferInfo buffer_info = {};
+		buffer_info.buffer = p_uniform;
+		buffer_info.offset = 0;
+		buffer_info.range = p_uniform_size;
+
+		VkWriteDescriptorSet buffer_descriptor = {};
+		buffer_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		buffer_descriptor.dstSet = p_descriptor_set;
+		buffer_descriptor.dstBinding = comp.get_decoration(r.id, spv::DecorationBinding);
+		buffer_descriptor.dstArrayElement = 0;
+		buffer_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		buffer_descriptor.descriptorCount = 1;
+		buffer_descriptor.pBufferInfo = &buffer_info;
+
+		p_write_descriptor_set.push_back(buffer_descriptor);
 	}
+
+	VkWriteDescriptorSet sampler_descriptor = {};
 
 	for (size_t i = 0; i < resources.sampled_images.size(); i++) {
 		spirv_cross::Resource r = resources.sampled_images[i];
@@ -266,13 +292,41 @@ void ShaderVulkan::get_descriptor_bindings(PoolByteArray &p_program, Vector<Shad
 		sampler_layout_binding.descriptorCount = 1;
 		sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		sampler_layout_binding.pImmutableSamplers = nullptr;
-
 		sampler_layout_binding.stageFlags = flags;
 
 		ShaderVulkan::SPIRVResource resource;
 		resource.set = set;
 		resource.binding = sampler_layout_binding;
 		p_bindings.push_back(resource);
+
+		List<RID> textures;
+		texture_owner.get_owned_list(&textures);
+
+		if (textures.size() == 0) {
+			return;
+		}
+
+		Vector<VkDescriptorImageInfo> image_infos;
+		for (List<RID>::Element *E = textures.front(); E; E = E->next()) {
+			VkDescriptorImageInfo image_info = {};
+			image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			RasterizerStorageVulkan::VulkanTexture *t = texture_owner.getornull(E->get());
+			image_info.imageView = t->texture_image_view;
+			image_info.sampler = t->texture_sampler;
+			image_infos.push_back(image_info);
+		}
+
+		sampler_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		sampler_descriptor.dstSet = p_descriptor_set;
+		sampler_descriptor.dstBinding = comp.get_decoration(r.id, spv::DecorationBinding);
+		sampler_descriptor.dstArrayElement = 0;
+		sampler_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		sampler_descriptor.descriptorCount = image_infos.size();
+		sampler_descriptor.pImageInfo = image_infos.ptr();
+
+		if (image_infos.size() != 0) {
+			p_write_descriptor_set.push_back(sampler_descriptor);
+		}
 	}
 }
 

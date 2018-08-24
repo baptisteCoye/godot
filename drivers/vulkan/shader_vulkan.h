@@ -216,7 +216,6 @@ public:
 	struct SPIRVResource {
 		uint32_t set;
 		VkDescriptorSetLayoutBinding binding;
-		VkWriteDescriptorSet write_bindings;
 	};
 
 	enum {
@@ -254,7 +253,7 @@ public:
 		shaderc_spirv_assembly,
 	} shader_kind;
 
-	void get_descriptor_bindings(PoolByteArray &p_program, Vector<ShaderVulkan::SPIRVResource> &p_bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkBuffer p_uniform);
+	void get_descriptor_bindings(PoolByteArray &p_program, Vector<ShaderVulkan::SPIRVResource> &p_bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkBuffer &p_uniform, size_t p_uniform_size, VkDescriptorSet &p_descriptor_set, Vector<VkWriteDescriptorSet> &p_write_descriptor_set);
 		
 	void compile_shader(const String p_text, const String p_input_file_name, const shader_kind p_kind, PoolByteArray &output, String &error_message, int32_t &num_warnings, int32_t &num_errors);
 

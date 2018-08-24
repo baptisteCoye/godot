@@ -32,6 +32,7 @@ private:
 	void _recreate_swap_chain();
 	void _create_image_views();
 	void _create_descriptor_set_layout();
+	void _update_descriptors();
 	void _create_graphics_pipeline();
 	void _create_framebuffers();
 	void _create_command_pool();
@@ -67,7 +68,6 @@ public:
 	RasterizerSceneVulkan *get_scene();
 
 	void set_boot_image(const Ref<Image> &p_image, const Color &p_color, bool p_scale);
-	void update_descriptors();
 	void initialize();
 	void begin_frame(double frame_step);
 	void set_current_render_target(RID p_render_target);
