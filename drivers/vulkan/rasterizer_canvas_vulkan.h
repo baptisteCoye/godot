@@ -24,13 +24,7 @@ public:
 	RasterizerStorageVulkan *storage;
 
 	struct State {
-		struct CanvasItemUBO {
-			float projection_matrix[16];
-			float time;
-			uint8_t padding[12];
-			float modelview_matrix[16];
-			float extra_matrix[16];
-		} canvas_item_ubo_data;
+		CanvasShaderVulkan::CanvasItemData canvas_item_ubo_data;
 
 		Vector<VkBuffer> uniform_buffers;
 		Vector<VmaAllocation> allocation_uniforms;

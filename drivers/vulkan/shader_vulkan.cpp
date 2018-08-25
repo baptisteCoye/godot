@@ -257,7 +257,7 @@ void ShaderVulkan::get_descriptor_bindings(PoolByteArray &p_program, Vector<Shad
 
 		bool found = false;
 		for (size_t i = 0; i < CanvasShaderVulkan::get_active()->ubo_count; i++) {
-			if (r.name != CanvasShaderVulkan::get_active()->ubo_pairs[i].name) {
+			if (sampler_layout_binding.binding == CanvasShaderVulkan::get_active()->ubo_pairs[i].index) {
 				found = true;
 			}
 		}
@@ -343,7 +343,6 @@ void ShaderVulkan::compile_shader(const String p_text, const String p_input_file
 	const CharString temp = p_text.utf8();
 	shaderc_compile_options_t opts = shaderc_compile_options_initialize();
 	shaderc_compile_options_set_target_env(opts, shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_1);
-	shaderc_compile_options_set_generate_debug_info(opts);
 	shaderc_compile_options_set_optimization_level(opts, shaderc_optimization_level_performance);
 	shaderc_compilation_result_t result = shaderc_compile_into_spv(
 			compiler, temp.ptr(), temp.length(),

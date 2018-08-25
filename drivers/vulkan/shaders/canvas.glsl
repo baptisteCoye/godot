@@ -13,7 +13,7 @@ layout(location = 7) in vec4 bone_weights; // attrib:7
 
 #ifdef USE_TEXTURE_RECT
 
-layout(binding = 0) uniform TextureRect { //ubo:3
+layout(binding = 3) uniform TextureRect { //ubo:3
 	vec4 dst_rect;
 	vec4 src_rect;
 };
@@ -59,8 +59,9 @@ layout(location = 3) out highp vec2 pixel_size_interp;
 #endif
 
 #ifdef USE_SKELETON
+
+uniform mediump sampler2D skeleton_texture; //texunit:2
 layout(std140, binding = 3) uniform Skeleton { //ubo:6
-	mediump sampler2D skeleton_texture;
 	highp mat4 skeleton_transform;
 	highp mat4 skeleton_transform_inverse;
 };
@@ -108,7 +109,7 @@ layout(std140, binding = 7) uniform Particles { //ubo:7
 #if defined(USE_MATERIAL)
 
 // clang-format off
-layout(std140, binding = 8) uniform UniformData{ //ubo:2
+layout(std140, binding = 8) uniform UniformData { //ubo:2
 MATERIAL_UNIFORMS
 	// clang-format on
 };
@@ -259,7 +260,8 @@ VERTEX_SHADER_CODE
 layout(binding = 9) uniform mediump sampler2D color_texture; // texunit:0
 layout(binding = 10) uniform mediump sampler2D normal_texture; // texunit:1
 
-layout(binding = 11) uniform ColorTexpixel { //ubo:8
+layout(std140, binding = 11) uniform ColorTexpixel { //ubo:8
+
 	highp vec2 color_texpixel_size;
 };
 
@@ -366,8 +368,8 @@ LIGHT_SHADER_CODE
 #ifdef USE_TEXTURE_RECT
 
 layout(binding = 20) uniform TextureRect { //ubo:14
-	vec4 dst_rect;
-	vec4 src_rect;
+	highp vec4 dst_rect;
+	highp vec4 src_rect;
 	bool clip_rect_uv;
 };
 #ifdef USE_NINEPATCH
