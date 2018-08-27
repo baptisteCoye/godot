@@ -511,19 +511,20 @@ def build_legacygl_header(filename, include, class_suffix, output_attribs, gles2
                 if len(uniform_list) > 1:                
                     uniform_type = uniform_list[0]
                     uniform_name = uniform_list[1]
-                    datatype_c = get_datatype_c(uniform_type)[0]
-                    array = ""
                     if get_datatype_c(uniform_type):
-                        array_count = get_datatype_c(uniform_type)[1]
-                        if array_count > 1:
-                            array = "[" + str(array_count) + "]"
-                    fd.write("\t\t" + datatype_c + " " + uniform_name + array + ";\n")
-                    offset += get_datatype_alignment(uniform_type)
-                    align = get_datatype_size(uniform_type) % get_datatype_alignment(uniform_type)
-                    if align != 0:
-                        padding = get_datatype_alignment(uniform_type) - align
-                        fd.write( "\t\tfloat align_" + str(i) + "[" + str(padding / 4) + "];\n" )
-                        i += 1
+                        datatype_c = get_datatype_c(uniform_type)[0]
+                        array = ""
+                        if get_datatype_c(uniform_type):
+                            array_count = get_datatype_c(uniform_type)[1]
+                            if array_count > 1:
+                                array = "[" + str(array_count) + "]"
+                        fd.write("\t\t" + datatype_c + " " + uniform_name + array + ";\n")
+                        offset += get_datatype_alignment(uniform_type)
+                        align = get_datatype_size(uniform_type) % get_datatype_alignment(uniform_type)
+                        if align != 0:
+                            padding = get_datatype_alignment(uniform_type) - align
+                            fd.write( "\t\tfloat align_" + str(i) + "[" + str(padding / 4) + "];\n" )
+                            i += 1
                     
             if offset % 16 != 0: #UBO sizes must be multiples of 16
                 align = offset % 16
