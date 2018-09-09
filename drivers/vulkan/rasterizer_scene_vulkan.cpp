@@ -9,8 +9,8 @@ void RasterizerSceneVulkan::environment_set_tonemap(RID p_env, VS::EnvironmentTo
 void RasterizerSceneVulkan::environment_set_adjustment(RID p_env, bool p_enable, float p_brightness, float p_contrast, float p_saturation, RID p_ramp) {
 }
 
-RenderingContextVulkan_Win *RasterizerSceneVulkan::get_instance_vulkan() {
-	return dynamic_cast<RenderingContextVulkan_Win *>(context);
+RenderingContextVulkan *RasterizerSceneVulkan::get_instance_vulkan() {
+	return dynamic_cast<RenderingContextVulkan *>(context);
 }
 
 RID RasterizerSceneVulkan::shadow_atlas_create() {

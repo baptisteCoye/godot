@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  rendering_context_vulkan_win.h                                       */
+/*  glad_vulkan_win.cpp                                                  */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -27,46 +27,8 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+#include "os_x11.h"
+#include "glad_vulkan_xlib.h"
 
-#ifndef RENDERING_CONTEXT_VULKAN_WIN_H
-#define RENDERING_CONTEXT_VULKAN_WIN_H
-
-//#if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
-#include "typedefs.h"
-
-#include "drivers/vulkan/rendering_context_vulkan.h"
+#define GLAD_VULKAN_IMPLEMENTATION
 #include "thirdparty/glad2/include/glad/vulkan.h"
-#include "vma_usage.h"
-
-class RenderingContextVulkan_Win : public RenderingContextVulkan {
-private:
-	HWND hWnd;
-
-	unsigned int pixel_format;
-	bool use_vsync;
-	int glad_vk_version = 0;
-
-public:
-
-public:
-	virtual void release_current();
-	virtual void make_current();
-	virtual void swap_buffers();
-	virtual int get_window_width();
-	virtual int get_window_height();
-
-	virtual Error initialize();
-
-	virtual void set_use_vsync(bool p_use);
-	virtual bool is_using_vsync() const;
-
-	RenderingContextVulkan_Win(HWND hwnd);
-	~RenderingContextVulkan_Win();
-
-public:
-	Error create_surface();
-};
-
-//#endif
-
-#endif

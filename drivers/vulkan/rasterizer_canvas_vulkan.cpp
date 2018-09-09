@@ -1,9 +1,15 @@
 #include "rasterizer_canvas_vulkan.h"
+
+#ifdef _WIN32
 #include "glad_vulkan_win.h"
+#elif defined(__linux__)
+#include "platform/x11/glad_vulkan_xlib.h"
+#endif
+
 #include "rasterizer_vulkan.h"
 
-RenderingContextVulkan_Win *RasterizerCanvasVulkan::_get_instance_vulkan() {
-	return dynamic_cast<RenderingContextVulkan_Win *>(context);
+RenderingContextVulkan *RasterizerCanvasVulkan::_get_instance_vulkan() {
+	return dynamic_cast<RenderingContextVulkan *>(context);
 }
 
 RID RasterizerCanvasVulkan::light_internal_create() {

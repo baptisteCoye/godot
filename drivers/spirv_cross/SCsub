@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 Import('env')
-Import('env_modules')
 
-env_spirv_cross = env_modules.Clone()
+env_spirv_cross = env.Clone()
 
 spirv_cross_dir = "#thirdparty/spirv-cross/"
 spirv_cross_sources = [
@@ -16,10 +15,11 @@ spirv_cross_sources = [
 ]
 spirv_cross_sources = [spirv_cross_dir + file for file in spirv_cross_sources]
 
-env_spirv_cross.add_source_files(env.modules_sources, spirv_cross_sources)
+env_spirv_cross.add_source_files(env.drivers_sources, spirv_cross_sources)
 env_spirv_cross.Append(CPPPATH=spirv_cross_dir)
+
 
 env_spirv_cross.Append(CPPDEFINES = ['SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS'])
 
 # Godot's own source files
-env_spirv_cross.add_source_files(env.modules_sources, "*.cpp")
+env_spirv_cross.add_source_files(env.drivers_sources, "*.cpp")

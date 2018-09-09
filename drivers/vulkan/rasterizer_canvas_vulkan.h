@@ -1,7 +1,12 @@
 #ifndef RASTERIZER_CANVAS_VULKAN_H
 #define RASTERIZER_CANVAS_VULKAN_H
 
+#ifdef _WIN32
 #include "platform/windows/rendering_context_vulkan_win.h"
+#elif defined(__linux__)
+#include "platform/x11/rendering_context_vulkan_x11.h"
+#endif
+
 #include "rasterizer_storage_vulkan.h"
 #include "servers/visual/rasterizer.h"
 #include "servers/visual/rendering_context.h"
@@ -13,7 +18,7 @@ private:
 	Vector<VkDescriptorSet> descriptor_sets;
 
 public:
-	RenderingContextVulkan_Win *_get_instance_vulkan();
+	RenderingContextVulkan *_get_instance_vulkan();
 	Vector<VkDescriptorSet> *_get_descriptor_sets();
 
 	void _update_uniform_buffer(uint32_t current_image);

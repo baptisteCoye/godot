@@ -39,9 +39,15 @@
 #include "servers/visual/rendering_context.h"
 #include "typedefs.h"
 
+#ifdef _WIN32
 #include "platform/windows/os_windows.h"
-
 #include "platform/windows/glad_vulkan_win.h"
+#elif defined(__linux__)
+#include "os_x11.h"
+#include "platform/x11/glad_vulkan_xlib.h"
+#include "thirdparty/vulkan_memory_allocator/vk_mem_alloc.h"
+#endif
+
 #include "thirdparty/shaderc/src/libshaderc/include/shaderc/shaderc.h"
 
 class RenderingContextVulkan : public RenderingContext {
@@ -138,6 +144,39 @@ public:
 	VkSwapchainKHR *_get_swap_chain();
 	VkQueue *_get_present_queue();
 	VkQueue *_get_graphics_queue();
+
+	VmaAllocator allocator;
+	VmaAllocator *get_allocator() {
+		return &allocator;
+	}
+
+	void allocate_vma() {
+		VmaAllocatorCreateInfo allocator_info = {};
+
+		VmaVulkanFunctions vma_vulkan_functions;
+		vma_vulkan_functions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+		vma_vulkan_functions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+		vma_vulkan_functions.vkAllocateMemory = vkAllocateMemory;
+		vma_vulkan_functions.vkFreeMemory = vkFreeMemory;
+		vma_vulkan_functions.vkMapMemory = vkMapMemory;
+		vma_vulkan_functions.vkUnmapMemory = vkUnmapMemory;
+		vma_vulkan_functions.vkBindBufferMemory = vkBindBufferMemory;
+		vma_vulkan_functions.vkBindImageMemory = vkBindImageMemory;
+		vma_vulkan_functions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+		vma_vulkan_functions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+		vma_vulkan_functions.vkCreateBuffer = vkCreateBuffer;
+		vma_vulkan_functions.vkDestroyBuffer = vkDestroyBuffer;
+		vma_vulkan_functions.vkCreateImage = vkCreateImage;
+		vma_vulkan_functions.vkDestroyImage = vkDestroyImage;
+		vma_vulkan_functions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+		vma_vulkan_functions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+
+		allocator_info.pVulkanFunctions = &vma_vulkan_functions;
+		allocator_info.physicalDevice = _get_physical_device();
+		allocator_info.device = *_get_device();
+
+		vmaCreateAllocator(&allocator_info, &allocator);
+	}
 
 public:
 	static const int max_frames_in_flight = 2;

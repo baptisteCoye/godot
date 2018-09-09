@@ -1,8 +1,13 @@
 #include "drivers/vulkan/rasterizer_vulkan.h"
 
+#ifdef _WIN32
 #include "platform/windows/os_windows.h"
 #include "platform/windows/rendering_context_vulkan_win.h"
 #include "platform/windows/vma_usage.h"
+#elif defined(__linux__)
+#include "platform/x11/rendering_context_vulkan_x11.h"
+#endif
+
 #include "shaders/canvas.glsl.gen.h"
 #include "thirdparty/spirv-cross/spirv_cross.hpp"
 
@@ -108,8 +113,8 @@ void RasterizerVulkan::_cleanup_swap_chain() {
 	vkDestroySwapchainKHR(*get_instance_vulkan()->_get_device(), *get_instance_vulkan()->_get_swap_chain(), nullptr);
 }
 
-RenderingContextVulkan_Win *RasterizerVulkan::get_instance_vulkan() {
-	return dynamic_cast<RenderingContextVulkan_Win *>(context);
+RenderingContextVulkan *RasterizerVulkan::get_instance_vulkan() {
+	return dynamic_cast<RenderingContextVulkan *>(context);
 }
 
 RasterizerStorageVulkan *RasterizerVulkan::get_storage() {
@@ -510,8 +515,9 @@ void RasterizerVulkan::_create_descriptor_set_layout() {
 	Vector<ShaderVulkan::SPIRVResource> bindings;
 	VkBuffer empty_buffer = VK_NULL_HANDLE;
 	VkDescriptorSet empty_set = VK_NULL_HANDLE;
-	canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_vert_program(), bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture>(), empty_buffer, 0, empty_set, Vector<VkWriteDescriptorSet>());
-	canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_frag_program(), bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture>(), empty_buffer, 0, empty_set, Vector<VkWriteDescriptorSet>());
+	RID_Owner<RasterizerStorageVulkan::VulkanTexture> Zero();
+	//canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_vert_program(), bindings, Zero, empty_buffer, 0, empty_set, Vector<VkWriteDescriptorSet>());
+	//canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_frag_program(), bindings, Zero, empty_buffer, 0, empty_set, Vector<VkWriteDescriptorSet>());
 
 	Vector<VkDescriptorSetLayoutBinding> b;
 	for (size_t i = 0; i < bindings.size(); i++) {

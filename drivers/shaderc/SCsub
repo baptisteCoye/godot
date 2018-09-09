@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
+import os
 Import('env')
-Import('env_modules')
 
-env_shaderc = env_modules.Clone()
+env_shaderc = env.Clone()
 
 shaderc_dir = "#thirdparty/shaderc/src/libshaderc/"
 shaderc_sources = [
@@ -12,7 +12,7 @@ shaderc_sources = [
 #shaderc
 shaderc_sources = [shaderc_dir + file for file in shaderc_sources]
 
-env_shaderc.add_source_files(env.modules_sources, shaderc_sources)
+env_shaderc.add_source_files(env.drivers_sources, shaderc_sources)
 env_shaderc.Append(CPPPATH=shaderc_dir + "include/")
 env_shaderc.Append(CPPPATH="#thirdparty/shaderc/src/libshaderc/src/")
 env_shaderc.Append(CPPPATH="#thirdparty/shaderc/src/libshaderc_util/include/")
@@ -20,7 +20,8 @@ env_shaderc.Append(CPPPATH="#thirdparty/shaderc/src/third_party/glslang/")
 env_shaderc.Append(CPPPATH="#thirdparty/shaderc/src/third_party/spirv-tools/include/")
 
 #glslang
-env_shaderc.Append(CPPDEFINES = ['AMD_EXTENSIONS', 'NV_EXTENSIONS', 'ENABLE_HLSL', 'GLSLANG_OSINCLUDE_WIN32', 'ENABLE_OPT=1']) 
+#env_shaderc.Append(CPPDEFINES = ['AMD_EXTENSIONS', 'NV_EXTENSIONS', 'ENABLE_HLSL', 'GLSLANG_OSINCLUDE_WIN32', 'ENABLE_OPT=1']) 
+env_shaderc.Append(CPPDEFINES = ['AMD_EXTENSIONS', 'NV_EXTENSIONS', 'ENABLE_HLSL', 'ENABLE_OPT=1']) 
 glslang_dir = "#thirdparty/shaderc/src/third_party/glslang/glslang/"
 glslang_sources = [
 #    "MachineIndependent/glslang.y",
@@ -55,17 +56,17 @@ glslang_sources = [
     "GenericCodeGen/Link.cpp",
 ]
 glslang_sources = [glslang_dir + file for file in glslang_sources]
-env_shaderc.add_source_files(env.modules_sources, glslang_sources)
+env_shaderc.add_source_files(env.drivers_sources, glslang_sources)
 env_shaderc.Append(CPPPATH=[glslang_dir])
 
 #glslang OSDependent
-glslang_os_dependent_dir = "#thirdparty/shaderc/src/third_party/glslang/glslang/OSDependent/Windows/"
+glslang_os_dependent_dir = "#thirdparty/shaderc/src/third_party/glslang/glslang/OSDependent/Unix/"
 glslang_os_dependent_sources = [
     "ossource.cpp",
 
 ]
 glslang_os_dependent_sources = [glslang_os_dependent_dir + file for file in glslang_os_dependent_sources]
-env_shaderc.add_source_files(env.modules_sources, glslang_os_dependent_sources)
+env_shaderc.add_source_files(env.drivers_sources, glslang_os_dependent_sources)
 env_shaderc.Append(CPPPATH=[glslang_os_dependent_dir])
 
 #OSDependent Unix TODO
@@ -75,7 +76,7 @@ ogl_compilers_dll_sources = [
     "InitializeDll.cpp",
 ]
 ogl_compilers_dll_sources = [ogl_compilers_dll_dir + file for file in ogl_compilers_dll_sources]
-env_shaderc.add_source_files(env.modules_sources, ogl_compilers_dll_sources)
+env_shaderc.add_source_files(env.drivers_sources, ogl_compilers_dll_sources)
 env_shaderc.Append(CPPPATH=[ogl_compilers_dll_dir])
 
 #libglslang
@@ -90,8 +91,10 @@ env_shaderc.Append(CPPPATH=[ogl_compilers_dll_dir])
 #Request C++11
 #mingw
 #LINK_FLAGS "-static -static-libgcc -static-libstdc++")
-# TODO LINUX PORTING
-#-DGLSLANG_OSINCLUDE_UNIX
+
+if (os.name == "posix"):
+    env_shaderc.Append(CPPDEFINES = ['GLSLANG_OSINCLUDE_UNIX'])
+
 #libshaderc_util
 libshaderc_util_dir = "#thirdparty/shaderc/src/libshaderc_util/"
 libshaderc_util_sources = [
@@ -105,7 +108,7 @@ libshaderc_util_sources = [
   "src/version_profile.cc",
 ]
 libshaderc_util_sources = [libshaderc_util_dir + file for file in libshaderc_util_sources]
-env_shaderc.add_source_files(env.modules_sources, libshaderc_util_sources)
+env_shaderc.add_source_files(env.drivers_sources, libshaderc_util_sources)
 env_shaderc.Append(CPPPATH=[libshaderc_util_dir])
 env_shaderc.Append(CPPPATH="#thirdparty/shaderc/src/libshaderc_util/include/")
 
@@ -122,7 +125,7 @@ spirv_sources = [
    "doc.cpp",
 ]
 spirv_sources = [spirv_dir + file for file in spirv_sources]
-env_shaderc.add_source_files(env.modules_sources, spirv_sources)
+env_shaderc.add_source_files(env.drivers_sources, spirv_sources)
 env_shaderc.Append(CPPPATH=[spirv_dir])
 env_shaderc.Append(CPPPATH="#thirdparty/shaderc/src/third_party/spirv-tools/source/")
 
@@ -138,7 +141,7 @@ hlsl_sources = [
     "hlslParseables.cpp",
 ]
 hlsl_sources = [hlsl_dir + file for file in hlsl_sources]
-env_shaderc.add_source_files(env.modules_sources, hlsl_sources)
+env_shaderc.add_source_files(env.drivers_sources, hlsl_sources)
 env_shaderc.Append(CPPPATH=[hlsl_dir])
 #libSPIRV-Tools-opt
 spirv_tools_opt_dir= "#thirdparty/shaderc/src/third_party/spirv-tools/source/"
@@ -226,7 +229,7 @@ spirv_tools_opt_sources = [
 	"opt/workaround1209.cpp",
 ]
 spirv_tools_opt_sources = [spirv_tools_opt_dir + file for file in spirv_tools_opt_sources]
-env_shaderc.add_source_files(env.modules_sources, spirv_tools_opt_sources)
+env_shaderc.add_source_files(env.drivers_sources, spirv_tools_opt_sources)
 env_shaderc.Append(CPPPATH=spirv_tools_opt_dir)
 env_shaderc.Append(CPPPATH="#thirdparty/shaderc/src/third_party/spirv-tools/external/spirv-headers/include/")
 env_shaderc.Append(CPPPATH="#thirdparty/shaderc/SPIRV-Tools-Generated/")
@@ -240,6 +243,7 @@ spirv_tools_sources = [
 	"util/bit_vector.cpp",
 	"util/parse_number.cpp",
 	"util/string_utils.cpp",
+	"util/timer.cpp",
 	"assembly_grammar.cpp",
 	"binary.cpp",
 	"diagnostic.cpp",
@@ -296,13 +300,18 @@ spirv_tools_sources = [
 	"software_version.cpp",
 ]
 spirv_tools_sources = [spirv_tools_dir + file for file in spirv_tools_sources]
-env_shaderc.add_source_files(env.modules_sources, spirv_tools_sources)
+env_shaderc.add_source_files(env.drivers_sources, spirv_tools_sources)
 env_shaderc.Append(CPPPATH=[spirv_tools_dir])
 env_shaderc.Append(CPPPATH="#thirdparty/shaderc/src/third_party/spirv-tools/")
-# TODO PORT LINUX DEFINE 'SPIRV_LINUX'
-# TODO PORT LINUX DEFINE 'SPIRV_TIMER_ENABLED'
-env_shaderc.Append(CPPDEFINES = ['SPIRV_WINDOWS'])
+
+if (os.name == "posix"):
+    env_shaderc.Append(CPPDEFINES = ['SPIRV_LINUX'])
+#    env_shaderc.Append(CPPDEFINES = ['SPIRV_TIMER_ENABLED'])
+
+if (os.name == "nt"):
+    env_shaderc.Append(CPPDEFINES = ['SPIRV_WINDOWS'])
+
 # TODO SPIRV_BUILD_COMPRESSION
 
 # Godot's own source files
-env_shaderc.add_source_files(env.modules_sources, "*.cpp")
+env_shaderc.add_source_files(env.drivers_sources, "*.cpp")

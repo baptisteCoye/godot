@@ -2,14 +2,19 @@
 #define RASTERIZER_SCENE_VULKAN_H
 
 #include "drivers/vulkan/shaders/canvas.glsl.gen.h"
+#ifdef _WIN32
 #include "platform/windows/rendering_context_vulkan_win.h"
 #include "platform/windows/vma_usage.h"
+#elif defined(__linux__)
+#include "platform/x11/rendering_context_vulkan_x11.h"
+#endif
+
 #include "rasterizer_storage_vulkan.h"
 #include "servers/visual/rasterizer.h"
 
 class RasterizerSceneVulkan : public RasterizerScene {
 	RenderingContext *context;
-	RenderingContextVulkan_Win *get_instance_vulkan();
+	RenderingContextVulkan *get_instance_vulkan();
 
 public:
 	CameraMatrix _look_at(const Vector3 eye, const Vector3 center, const Vector3 up);

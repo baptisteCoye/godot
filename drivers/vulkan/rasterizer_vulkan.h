@@ -3,7 +3,14 @@
 
 #include "core/project_settings.h"
 #include "os/os.h"
+
+#ifdef _WIN32
 #include "platform/windows/rendering_context_vulkan_win.h"
+#include "platform/windows/vma_usage.h"
+#elif defined(__linux__)
+#include "platform/x11/rendering_context_vulkan_x11.h"
+#endif
+
 #include "servers/visual/rasterizer.h"
 #include "servers/visual/rendering_context.h"
 
@@ -12,7 +19,7 @@
 #include "rasterizer_storage_vulkan.h"
 
 #include "main/splash.gen.h"
-#include "platform/windows/vma_usage.h"
+
 
 class MakeCurrentFunctVulkan : public MakeCurrentFunct {
 	RenderingContext *context;
@@ -62,7 +69,7 @@ protected:
 	RenderingContext *context;
 
 public:
-	RenderingContextVulkan_Win *get_instance_vulkan();
+	RenderingContextVulkan *get_instance_vulkan();
 	RasterizerStorageVulkan *get_storage();
 	RasterizerCanvasVulkan *get_canvas();
 	RasterizerSceneVulkan *get_scene();

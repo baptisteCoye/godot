@@ -44,7 +44,13 @@
 #include "hash_map.h"
 #include "map.h"
 #include "variant.h"
+#ifdef _WIN32
 #include "platform/windows/glad_vulkan_win.h"
+#elif defined(__linux__)
+#include "os_x11.h"
+#include "platform/x11/glad_vulkan_xlib.h"
+#endif
+
 #include "drivers/vulkan/rasterizer_storage_vulkan.h"
 
 class ShaderVulkan {
@@ -264,8 +270,8 @@ public:
 	void unbind();
 	void bind_uniforms();
 
-	PoolByteArray get_vert_program() const;
-	PoolByteArray get_frag_program() const;
+	PoolByteArray& get_vert_program() const;
+	PoolByteArray& get_frag_program() const;
 
 	void clear_caches();
 

@@ -277,7 +277,7 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 	switch (p_video_driver) {
 #if defined(VULKAN_ENABLED)
 		case VIDEO_DRIVER_VULKAN:
-			RasterizerVulkan::make_current();
+		//	RasterizerVulkan::make_current();
 
 			rendering_context = memnew(RenderingContextVulkan_X11(x11_display, x11_window, current_videomode));
 			rendering_context->initialize();

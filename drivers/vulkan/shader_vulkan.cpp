@@ -208,7 +208,7 @@ void ShaderVulkan::bind_uniforms() {
 	uniforms_dirty = false;
 }
 
-PoolByteArray ShaderVulkan::get_vert_program() const {
+PoolByteArray& ShaderVulkan::get_vert_program() const {
 	return version->vert;
 }
 
@@ -369,7 +369,7 @@ void ShaderVulkan::compile_shader_fail(const String p_source, const String p_inp
 		ERR_PRINT(message.utf8().ptr());
 	}
 	ERR_EXPLAIN(message);
-	ERR_FAIL_COND(num_errors != 0, message);
+//	ERR_FAIL_COND(num_errors != 0, message);
 }
 
 _FORCE_INLINE_ ShaderVulkan *ShaderVulkan::get_active() {
@@ -729,7 +729,7 @@ void ShaderVulkan::finish() {
 	}
 }
 
-PoolByteArray ShaderVulkan::get_frag_program() const {
+PoolByteArray& ShaderVulkan::get_frag_program() const {
 	return version->frag;
 }
 

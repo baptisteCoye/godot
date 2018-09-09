@@ -30,14 +30,18 @@
 
 #include "rendering_context_vulkan.h"
 #include "os/os.h"
-#include "os_windows.h"
+#ifdef _WIN32
+	#include "os_windows.h"
+	#include <Windows.h>
+	#include "platform/windows/glad_vulkan_win.h"
+#elif defined(__linux__)
+	#include "os_x11.h"
+	#include "platform/x11/glad_vulkan_xlib.h"
+#endif
+
 #include "project_settings.h"
 #include "thirdparty/shaderc/src/libshaderc/include/shaderc/shaderc.h"
 #include "version_generated.gen.h"
-
-#include <Windows.h>
-
-#include "platform/windows/glad_vulkan_win.h"
 
 #if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
 
@@ -230,7 +234,7 @@ Error RenderingContextVulkan::_pick_physical_device() {
 	uint32_t device_count = 0;
 	vkEnumeratePhysicalDevices(*_get_instance(), &device_count, NULL);
 	if (device_count == 0) {
-		ERR_FAIL_V(ERR_CANT_CREATE, "Can't find GPUs with Vulkan support");
+		ERR_FAIL_V(ERR_CANT_CREATE);
 	}
 
 	Vector<VkPhysicalDevice> devices;
@@ -247,12 +251,12 @@ Error RenderingContextVulkan::_pick_physical_device() {
 	}
 
 	if (physical_device == VK_NULL_HANDLE) {
-		ERR_FAIL_V(ERR_CANT_CREATE, "Can't find a suitable GPU");
+		ERR_FAIL_V(ERR_CANT_CREATE);
 	}
 
 	glad_vk_version = gladLoaderLoadVulkan(*_get_instance(), physical_device, NULL);
 	if (!glad_vk_version) {
-		ERR_FAIL_V(ERR_CANT_CREATE, "Can't Re-load Vulkan Symbols With Physical Device.");
+		ERR_FAIL_V(ERR_CANT_CREATE);
 	}
 
 	return OK;
@@ -284,7 +288,12 @@ Error RenderingContextVulkan::_create_instance() {
 	create_info.flags = 0;
 
 	extensions.insert(String(VK_KHR_SURFACE_EXTENSION_NAME).utf8());
+#ifdef _WIN32
 	extensions.insert(String(VK_KHR_WIN32_SURFACE_EXTENSION_NAME).utf8());
+#elif defined(__linux__)
+	extensions.insert(String(VK_KHR_XLIB_SURFACE_EXTENSION_NAME).utf8());
+#endif
+
 	if (enable_validation) {
 		extensions.insert(String(VK_EXT_DEBUG_REPORT_EXTENSION_NAME).utf8());
 	}
@@ -298,7 +307,7 @@ Error RenderingContextVulkan::_create_instance() {
 	create_info.enabledLayerCount = 0;
 
 	if (vkCreateInstance(&create_info, NULL, _get_instance()) != VK_SUCCESS) {
-		ERR_FAIL_V(ERR_CANT_CREATE, "Can't Create A Vulkan Instance.");
+		ERR_FAIL_V(ERR_CANT_CREATE);
 	}
 
 	return OK;
@@ -398,7 +407,7 @@ Error RenderingContextVulkan::_create_swap_chain() {
 	create_info.oldSwapchain = VK_NULL_HANDLE;
 
 	if (vkCreateSwapchainKHR(*_get_device(), &create_info, NULL, _get_swap_chain()) != VK_SUCCESS) {
-		ERR_FAIL_V(ERR_CANT_CREATE, "Can't Create A Vulkan Swap Chain.")
+		ERR_FAIL_V(ERR_CANT_CREATE)
 	}
 
 	vkGetSwapchainImagesKHR(*_get_device(), *_get_swap_chain(), &image_count, NULL);
@@ -451,12 +460,12 @@ Error RenderingContextVulkan::_create_logical_device() {
 	create_info.enabledLayerCount = 0;
 
 	if (vkCreateDevice(physical_device, &create_info, NULL, _get_device()) != VK_SUCCESS) {
-		ERR_FAIL_V(ERR_CANT_CREATE, "Can't Create A Vulkan Logical Device.");
+		ERR_FAIL_V(ERR_CANT_CREATE);
 	}
 
 	glad_vk_version = gladLoaderLoadVulkan(*_get_instance(), physical_device, *_get_device());
 	if (!glad_vk_version) {
-		ERR_FAIL_V(ERR_CANT_CREATE, "Can't Re-load Vulkan Symbols With Device.");
+		ERR_FAIL_V(ERR_CANT_CREATE);
 	}
 
 	vkGetDeviceQueue(*_get_device(), indices.graphics_family, 0, _get_graphics_queue());

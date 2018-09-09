@@ -1,15 +1,21 @@
 #ifndef RASTERIZER_STORAGE_VULKAN_H
 #define RASTERIZER_STORAGE_VULKAN_H
 
+#ifdef _WIN32
 #include "platform/windows/rendering_context_vulkan_win.h"
+#elif defined(__linux__)
+#include "platform/x11/rendering_context_vulkan_x11.h"
+#include "platform/x11/glad_vulkan_xlib.h"
+#endif
+
 #include "platform/windows/vma_usage.h"
 #include "servers/visual/rasterizer.h"
 
 class RasterizerStorageVulkan : public RasterizerStorage {
 private:
 	RenderingContext *context;
-	RenderingContextVulkan_Win *_get_instance_vulkan();
-
+	RenderingContextVulkan *_get_instance_vulkan();
+	
 public:
 	struct Vertex {
 		Vector2 pos;

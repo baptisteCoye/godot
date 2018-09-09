@@ -1,8 +1,8 @@
 #include "rasterizer_storage_vulkan.h"
 
 
-RenderingContextVulkan_Win *RasterizerStorageVulkan::_get_instance_vulkan() {
-	return dynamic_cast<RenderingContextVulkan_Win *>(context);
+RenderingContextVulkan *RasterizerStorageVulkan::_get_instance_vulkan() {
+	return dynamic_cast<RenderingContextVulkan *>(context);
 }
 
 
