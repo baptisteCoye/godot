@@ -103,7 +103,6 @@ protected:
 protected:
 	int ubo_count;
 	const UBOPair *ubo_pairs;
-	Map<String, int32_t> name_to_ubo_bindings;
 
 public:
 	struct UBO {};
@@ -229,7 +228,7 @@ protected:
 	_FORCE_INLINE_ void _unset_uniform_buffer_object(int32_t binding) {
 		ubos.erase(binding);
 	}
-	void setup(const char **p_conditional_defines, int p_conditional_count, const AttributePair *p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const Map<String, int32_t> p_name_to_ubo_bindings, const UBOPair *p_ubo_pairs, int p_ubo_pair_count, const Feedback *p_feedback, int p_feedback_count, const char *p_vertex_code, const char *p_fragment_code, int p_vertex_code_start, int p_fragment_code_start);
+	void setup(const char **p_conditional_defines, int p_conditional_count, const AttributePair *p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const UBOPair *p_ubo_pairs, int p_ubo_pair_count, const Feedback *p_feedback, int p_feedback_count, const char *p_vertex_code, const char *p_fragment_code, int p_vertex_code_start, int p_fragment_code_start);
 
 	ShaderVulkan();
 
@@ -274,8 +273,6 @@ public:
 		shaderc_spirv_assembly,
 	} shader_kind;
 
-	int32_t get_binding_from_name(String p_name) const;
-
 	void get_descriptor_bindings(Vector<ShaderVulkan::SPIRVResource> &p_bindings, VkBuffer &p_uniform, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkDescriptorSet &p_descriptor_set, Vector<VkWriteDescriptorSet> &p_write_descriptor_set);
 
 	void compile_shader(const String p_text, const String p_input_file_name, const shader_kind p_kind, PoolByteArray &output, String &error_message, int32_t &num_warnings, int32_t &num_errors);
@@ -290,8 +287,6 @@ public:
 
 	PoolByteArray &get_vert_program() const;
 	PoolByteArray &get_frag_program() const;
-
-	int32_t get_binding_from_fbo_name(String p_name) const;
 
 	void clear_caches();
 

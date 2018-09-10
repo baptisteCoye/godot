@@ -518,8 +518,8 @@ void RasterizerVulkan::_create_descriptor_set_layout() {
 	canvas->state.canvas_fbos.screen_u_v = {};
 	canvas->state.canvas_fbos.modulate = {};
 
-	canvas->state.canvas_shader.set_uniform_buffer_object(canvas->state.canvas_shader.get_active()->get_binding_from_fbo_name("ScreenUV"), canvas->state.canvas_fbos.screen_u_v);
-	canvas->state.canvas_shader.set_uniform_buffer_object(canvas->state.canvas_shader.get_active()->get_binding_from_fbo_name("Modulate"), canvas->state.canvas_fbos.modulate);
+	canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::SCREEN_U_V, canvas->state.canvas_fbos.screen_u_v);
+	canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::MODULATE, canvas->state.canvas_fbos.modulate);
 	canvas->state.canvas_shader.get_descriptor_bindings(bindings, empty_buffer, zero, empty_set, Vector<VkWriteDescriptorSet>());
 
 	Vector<VkDescriptorSetLayoutBinding> b;
@@ -546,7 +546,7 @@ void RasterizerVulkan::_create_descriptor_set_layout() {
 void RasterizerVulkan::_create_graphics_pipeline() {
 	VkShaderModule vert_shader_module;
 	VkShaderModule frag_shader_module;
-	//canvas->state.canvas_shader.set_uniform(CanvasShaderVulkan::FINAL_MODULATE, Color(1, 1, 1, 1));
+	//canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::get_active()->get_binding_from_fbo_name("Modulate"), canvas->state.canvas_fbos.modulate(Color(1, 1, 1, 1)));
 	//canvas->state.canvas_shader.set_uniform(CanvasShaderVulkan::MODELVIEW_MATRIX, Transform2D());
 	//canvas->state.canvas_shader.set_uniform(CanvasShaderVulkan::EXTRA_MATRIX, Transform2D());
 	//if (storage->frame.current_rt) {

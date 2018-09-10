@@ -236,10 +236,23 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
     if header_data.conditionals:
         fd.write("\t_FORCE_INLINE_ void set_conditional(Conditionals p_conditional, bool p_enable) {  _set_conditional(p_conditional, p_enable); }\n\n")
        
-    fd.write("\tMap<String, int32_t> _name_to_ubo_bindings;\n")
-
-    fd.write("\t_FORCE_INLINE_ void set_uniform_buffer_object(int32_t binding, UBO &p_value) {  _set_uniform_buffer_object(binding, p_value); }\n\n")
-    fd.write("\t_FORCE_INLINE_ void unset_uniform_buffer_object(int32_t binding) {  _unset_uniform_buffer_object(binding); }\n\n")
+    if header_data.ubos:
+        fd.write("\tenum UniformBufferObject {\n")
+        for x in header_data.ubos:
+            ind = 0
+            count = 0
+            new_lst = []
+            for index, val in enumerate(x[0][1:],1):
+                if val.isupper():
+                    new_lst.append(x[0][ind:index])
+                    ind=index
+            if ind<len(x[0]):
+                new_lst.append(x[0][ind:])
+            fd.write("\t\t" + '_'.join(new_lst).upper() + ",\n")
+        fd.write("\t};\n\n")
+    
+    fd.write("\t_FORCE_INLINE_ void set_uniform_buffer_object(UniformBufferObject binding, UBO &p_value) {  _set_uniform_buffer_object(binding, p_value); }\n\n")
+    fd.write("\t_FORCE_INLINE_ void unset_uniform_buffer_object(UniformBufferObject binding) {  _unset_uniform_buffer_object(binding); }\n\n")
         
     fd.write("\nstruct CanvasFbos {\n")
     if header_data.ubos:
@@ -383,11 +396,6 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
     else:
         fd.write("\t\tstatic UBOPair *_ubo_pairs=NULL;\n")
 
-    if header_data.ubos:
-        for x in header_data.ubos:
-            fd.write("\t\t _name_to_ubo_bindings.insert(\"" + x[0] + "\" ," + x[1] + ");\n")
-        fd.write("\n\n")
-
     fd.write("\t\tstatic const char _vertex_code[]={\n")
     for x in header_data.vertex_lines:
         for c in x:
@@ -410,11 +418,11 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
 
     if output_attribs:
         fd.write("\t\tsetup(_conditional_strings," + str(len(header_data.conditionals)) + ",_attribute_pairs," + str(
-            len(header_data.attributes)) + ", _texunit_pairs," + str(len(header_data.texunits)) + ", _name_to_ubo_bindings, _ubo_pairs," + str(len(header_data.ubos)) + ",_feedbacks," + str(
+            len(header_data.attributes)) + ", _texunit_pairs," + str(len(header_data.texunits)) + ", _ubo_pairs," + str(len(header_data.ubos)) + ",_feedbacks," + str(
             feedback_count) + ",_vertex_code,_fragment_code,_vertex_code_start,_fragment_code_start);\n")
     else:
         fd.write("\t\tsetup(_conditional_strings," + str(len(header_data.conditionals)) + ",_uniform_strings," + str(len(header_data.uniforms)) + ",_texunit_pairs," + str(
-            len(header_data.texunits)) + ",_enums," + str(len(header_data.enums)) + ",_enum_values," + str(enum_value_count) + ", _name_to_ubo_bindings, _ubo_pairs, " + str(len(header_data.ubos)) + ",_feedbacks," + str(
+            len(header_data.texunits)) + ",_enums," + str(len(header_data.enums)) + ",_enum_values," + str(enum_value_count) + ", _ubo_pairs, " + str(len(header_data.ubos)) + ",_feedbacks," + str(
             feedback_count) + ",_vertex_code,_fragment_code,_vertex_code_start,_fragment_code_start);\n")
 
     fd.write("\t}\n\n")

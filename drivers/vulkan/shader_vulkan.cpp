@@ -76,10 +76,6 @@ PoolByteArray &ShaderVulkan::get_vert_program() const {
 	return version->vert;
 }
 
-int32_t ShaderVulkan::get_binding_from_fbo_name(String p_name) const {
-	return name_to_ubo_bindings.find(p_name)->get();
-}
-
 void ShaderVulkan::get_descriptor_bindings(Vector<ShaderVulkan::SPIRVResource> &p_bindings, VkBuffer &p_uniform, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkDescriptorSet &p_descriptor_set, Vector<VkWriteDescriptorSet> &p_write_descriptor_set) {
 
 	//Only one stage flag?
@@ -449,7 +445,7 @@ ShaderVulkan::Version *ShaderVulkan::get_current_version() {
 	return &v;
 }
 
-void ShaderVulkan::setup(const char **p_conditional_defines, int p_conditional_count, const AttributePair *p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const Map<String, int32_t> p_name_to_ubo_bindings, const UBOPair *p_ubo_pairs, int p_ubo_pair_count, const Feedback *p_feedback, int p_feedback_count, const char *p_vertex_code, const char *p_fragment_code, int p_vertex_code_start, int p_fragment_code_start) {
+void ShaderVulkan::setup(const char **p_conditional_defines, int p_conditional_count, const AttributePair *p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const UBOPair *p_ubo_pairs, int p_ubo_pair_count, const Feedback *p_feedback, int p_feedback_count, const char *p_vertex_code, const char *p_fragment_code, int p_vertex_code_start, int p_fragment_code_start) {
 
 	ERR_FAIL_COND(version);
 	conditional_version.key = 0;
@@ -460,7 +456,6 @@ void ShaderVulkan::setup(const char **p_conditional_defines, int p_conditional_c
 	fragment_code = p_fragment_code;
 	texunit_pairs = p_texunit_pairs;
 	texunit_pair_count = p_texunit_pair_count;
-	name_to_ubo_bindings = p_name_to_ubo_bindings;
 	vertex_code_start = p_vertex_code_start;
 	fragment_code_start = p_fragment_code_start;
 	attribute_pairs = p_attribute_pairs;
