@@ -254,8 +254,8 @@ VERTEX_SHADER_CODE
 }
 
 // [fragment]
-layout(binding = 9) uniform mediump sampler2D color_texture; // texunit:0
-layout(binding = 10) uniform mediump sampler2D normal_texture; // texunit:1
+layout(binding = 9) uniform mediump sampler2D color_texture; // texunit:9
+layout(binding = 10) uniform mediump sampler2D normal_texture; // texunit:10
 
 layout(std140, binding = 11) uniform ColorTexpixel { //ubo:11
 
@@ -267,7 +267,7 @@ layout(location = 2) in mediump vec4 color_interp;
 
 #if defined(SCREEN_TEXTURE_USED)
 
-layout(binding = 12) uniform sampler2D screen_texture; // texunit:-3
+layout(binding = 12) uniform sampler2D screen_texture; // texunit:12
 
 #endif
 
@@ -303,7 +303,7 @@ layout(std140, binding = 15) uniform LightData { //ubo:15
 	highp float shadow_distance_mult;
 };
 
-layout(binding = 16) uniform lowp sampler2D light_texture; // texunit:-1
+layout(binding = 16) uniform lowp sampler2D light_texture; // texunit:16
 
 layout(location = 4) in vec4 light_uv_interp;
 layout(location = 5) in vec2 transformed_light_uv;
@@ -312,7 +312,7 @@ layout(location = 6) in vec4 local_rot;
 
 #ifdef USE_SHADOWS
 
-layout(binding = 17) uniform highp sampler2D shadow_texture; // texunit:-2
+layout(binding = 17) uniform highp sampler2D shadow_texture; // texunit:17
 
 layout(location = 7) in highp vec2 pos;
 

@@ -10,7 +10,6 @@
 #endif
 
 #include "shaders/canvas.glsl.gen.h"
-#include "thirdparty/spirv-cross/spirv_cross.hpp"
 
 Rasterizer *MakeCurrentFunctVulkan::make_current() {
 	return memnew(RasterizerVulkan(context));
@@ -222,10 +221,9 @@ void RasterizerVulkan::_update_descriptors() {
 		Vector<ShaderVulkan::SPIRVResource> bindings;
 		Vector<VkWriteDescriptorSet> descriptor_writes;
 		VkDescriptorSet &set = canvas->_get_descriptor_sets()->write[i];
-		VkBuffer &buffer = get_canvas()->state.uniform_buffers.write[i];
-		canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_vert_program(), bindings, get_storage()->texture_owner, buffer, sizeof(canvas->state.canvas_item_ubo_data), set, descriptor_writes);
-		canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_frag_program(), bindings, get_storage()->texture_owner, buffer, sizeof(canvas->state.canvas_item_ubo_data), set, descriptor_writes);
-
+		VkBuffer &buffer = canvas->state.uniform_buffers.write[i];
+		canvas->state.canvas_shader.get_descriptor_bindings(bindings, buffer, get_storage()->texture_owner, set, descriptor_writes);
+		// sizeof(canvas->state.canvas_item_ubo_data)
 		vkUpdateDescriptorSets(*get_instance_vulkan()->_get_device(), descriptor_writes.size(), descriptor_writes.ptr(), 0, nullptr);
 	}
 
@@ -258,7 +256,7 @@ void RasterizerVulkan::_update_descriptors() {
 	//	sampler_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	//	sampler_descriptor.descriptorCount = image_infos.size();
 	//	sampler_descriptor.pImageInfo = image_infos.ptr();
-	//	
+	//
 	//	if (image_infos.size() != 0) {
 	//		descriptor_writes.push_back(sampler_descriptor);
 	//	}
@@ -516,9 +514,13 @@ void RasterizerVulkan::_create_descriptor_set_layout() {
 	Vector<ShaderVulkan::SPIRVResource> bindings;
 	VkBuffer empty_buffer = VK_NULL_HANDLE;
 	VkDescriptorSet empty_set = VK_NULL_HANDLE;
-	RID_Owner<RasterizerStorageVulkan::VulkanTexture> Zero();
-	//canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_vert_program(), bindings, Zero, empty_buffer, 0, empty_set, Vector<VkWriteDescriptorSet>());
-	//canvas->state.canvas_shader.get_descriptor_bindings(canvas->state.canvas_shader.get_frag_program(), bindings, Zero, empty_buffer, 0, empty_set, Vector<VkWriteDescriptorSet>());
+	RID_Owner<RasterizerStorageVulkan::VulkanTexture> zero = RID_Owner<RasterizerStorageVulkan::VulkanTexture>();
+	canvas->state.canvas_fbos.screen_u_v = {};
+	canvas->state.canvas_fbos.modulate = {};
+
+	canvas->state.canvas_shader.set_uniform_buffer_object(canvas->state.canvas_shader.get_active()->get_binding_from_fbo_name("ScreenUV"), canvas->state.canvas_fbos.screen_u_v);
+	canvas->state.canvas_shader.set_uniform_buffer_object(canvas->state.canvas_shader.get_active()->get_binding_from_fbo_name("Modulate"), canvas->state.canvas_fbos.modulate);
+	canvas->state.canvas_shader.get_descriptor_bindings(bindings, empty_buffer, zero, empty_set, Vector<VkWriteDescriptorSet>());
 
 	Vector<VkDescriptorSetLayoutBinding> b;
 	for (size_t i = 0; i < bindings.size(); i++) {

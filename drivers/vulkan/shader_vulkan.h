@@ -52,6 +52,7 @@
 #endif
 
 #include "drivers/vulkan/rasterizer_storage_vulkan.h"
+#include "thirdparty/spirv-cross/spirv_cross.hpp"
 
 class ShaderVulkan {
 protected:
@@ -99,12 +100,19 @@ protected:
 
 	bool uniforms_dirty;
 
+protected:
+	int ubo_count;
+	const UBOPair *ubo_pairs;
+	Map<String, int32_t> name_to_ubo_bindings;
+
+public:
+	struct UBO {};
+
 private:
 	//@TODO Optimize to a fixed set of shader pools and use a LRU
 	int uniform_count;
 	int texunit_pair_count;
 	int conditional_count;
-	int ubo_count;
 	int feedback_count;
 	int vertex_code_start;
 	int fragment_code_start;
@@ -174,7 +182,6 @@ private:
 	const char **uniform_names;
 	const AttributePair *attribute_pairs;
 	const TexUnitPair *texunit_pairs;
-	const UBOPair *ubo_pairs;
 	const Feedback *feedbacks;
 	const char *vertex_code;
 	const char *fragment_code;
@@ -205,7 +212,8 @@ private:
 	Map<uint32_t, CameraMatrix> uniform_cameras;
 
 protected:
-	_FORCE_INLINE_ int _get_uniform(int p_which) const;
+	Map<int32_t, UBO> ubos;
+
 	_FORCE_INLINE_ void _set_conditional(int p_which, bool p_value) {
 		ERR_FAIL_INDEX(p_which, conditional_count);
 		if (p_value)
@@ -214,7 +222,14 @@ protected:
 			new_conditional_version.version &= ~(1 << p_which);
 	}
 
-	void setup(const char **p_conditional_defines, int p_conditional_count, const AttributePair *p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const UBOPair *p_ubo_pairs, int p_ubo_pair_count, const Feedback *p_feedback, int p_feedback_count, const char *p_vertex_code, const char *p_fragment_code, int p_vertex_code_start, int p_fragment_code_start);
+	_FORCE_INLINE_ void _set_uniform_buffer_object(int32_t binding, UBO &p_value) {
+		ubos.insert(binding, p_value);
+	}
+
+	_FORCE_INLINE_ void _unset_uniform_buffer_object(int32_t binding) {
+		ubos.erase(binding);
+	}
+	void setup(const char **p_conditional_defines, int p_conditional_count, const AttributePair *p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const Map<String, int32_t> p_name_to_ubo_bindings, const UBOPair *p_ubo_pairs, int p_ubo_pair_count, const Feedback *p_feedback, int p_feedback_count, const char *p_vertex_code, const char *p_fragment_code, int p_vertex_code_start, int p_fragment_code_start);
 
 	ShaderVulkan();
 
@@ -259,19 +274,24 @@ public:
 		shaderc_spirv_assembly,
 	} shader_kind;
 
-	void get_descriptor_bindings(PoolByteArray &p_program, Vector<ShaderVulkan::SPIRVResource> &p_bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkBuffer &p_uniform, size_t p_uniform_size, VkDescriptorSet &p_descriptor_set, Vector<VkWriteDescriptorSet> &p_write_descriptor_set);
-		
+	int32_t get_binding_from_name(String p_name) const;
+
+	void get_descriptor_bindings(Vector<ShaderVulkan::SPIRVResource> &p_bindings, VkBuffer &p_uniform, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkDescriptorSet &p_descriptor_set, Vector<VkWriteDescriptorSet> &p_write_descriptor_set);
+
 	void compile_shader(const String p_text, const String p_input_file_name, const shader_kind p_kind, PoolByteArray &output, String &error_message, int32_t &num_warnings, int32_t &num_errors);
 
 	void compile_shader_fail(const String p_source, const String p_input_file_name, const shader_kind p_kind, PoolByteArray &p_output);
 
-	static _FORCE_INLINE_ ShaderVulkan *get_active();
+	static _FORCE_INLINE_ ShaderVulkan *ShaderVulkan::get_active() {
+		return active;
+	}
 	bool bind();
 	void unbind();
-	void bind_uniforms();
 
-	PoolByteArray& get_vert_program() const;
-	PoolByteArray& get_frag_program() const;
+	PoolByteArray &get_vert_program() const;
+	PoolByteArray &get_frag_program() const;
+
+	int32_t get_binding_from_fbo_name(String p_name) const;
 
 	void clear_caches();
 
@@ -279,8 +299,6 @@ public:
 	void set_custom_shader_code(uint32_t p_code_id, const String &p_vertex, const String &p_vertex_globals, const String &p_fragment, const String &p_light, const String &p_fragment_globals, const String &p_uniforms, const Vector<StringName> &p_texture_uniforms, const Vector<CharString> &p_custom_defines);
 	void set_custom_shader(uint32_t p_code_id);
 	void free_custom_shader(uint32_t p_code_id);
-
-	void set_uniform_default(int p_idx, const Variant &p_value);
 
 	uint32_t get_version() const;
 

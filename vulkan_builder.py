@@ -226,7 +226,7 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
     fd.write("\t virtual String get_shader_name() const { return \"" + out_file_class + "\"; }\n")
 
     fd.write("public:\n\n")
-
+            
     if header_data.conditionals:
         fd.write("\tenum Conditionals {\n")
         for x in header_data.conditionals:
@@ -234,8 +234,56 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
         fd.write("\t};\n\n")
 
     if header_data.conditionals:
-        fd.write("\t_FORCE_INLINE_ void set_conditional(Conditionals p_conditional,bool p_enable)  {  _set_conditional(p_conditional,p_enable); }\n\n")
+        fd.write("\t_FORCE_INLINE_ void set_conditional(Conditionals p_conditional, bool p_enable) {  _set_conditional(p_conditional, p_enable); }\n\n")
+       
+    fd.write("\tMap<String, int32_t> _name_to_ubo_bindings;\n")
 
+    fd.write("\t_FORCE_INLINE_ void set_uniform_buffer_object(int32_t binding, UBO &p_value) {  _set_uniform_buffer_object(binding, p_value); }\n\n")
+    fd.write("\t_FORCE_INLINE_ void unset_uniform_buffer_object(int32_t binding) {  _unset_uniform_buffer_object(binding); }\n\n")
+        
+    fd.write("\nstruct CanvasFbos {\n")
+    if header_data.ubos:
+       for x in header_data.ubos:
+            offset = 0;
+            fd.write("\nstruct " + x[0] + " : public ShaderVulkan::UBO {\n")
+            i = 0
+            for uniform in x[2]:
+                uniform_list = re.split(r'\s+', uniform.strip())
+                if len(uniform_list) > 1:                
+                    uniform_type = uniform_list[0]
+                    uniform_name = uniform_list[1]
+                    if get_datatype_c(uniform_type):
+                        datatype_c = get_datatype_c(uniform_type)[0]
+                        array = ""
+                        if get_datatype_c(uniform_type):
+                            array_count = get_datatype_c(uniform_type)[1]
+                            if array_count > 1:
+                                array = "[" + str(array_count) + "]"
+                        fd.write("\t\t" + datatype_c + " " + uniform_name + array + ";\n")
+                        offset += get_datatype_alignment(uniform_type)
+                        align = get_datatype_size(uniform_type) % get_datatype_alignment(uniform_type)
+                        if align != 0:
+                            padding = get_datatype_alignment(uniform_type) - align
+                            pad = int(padding / 4)
+                            fd.write( "\t\tfloat align_" + str(i) + "[" + str(pad) + "];\n" )
+                            i += 1
+                    
+            if offset % 16 != 0: #UBO sizes must be multiples of 16
+                align = offset % 16
+                padding = 16 - align
+                pad = int(padding / 4)
+                fd.write("\t\tfloat _pad[" + str(pad) + "];\n" )
+            ind = 0
+            count = 0
+            new_lst = []
+            for index, val in enumerate(x[0][1:],1):
+                if val.isupper():
+                    new_lst.append(x[0][ind:index])
+                    ind=index
+            if ind<len(x[0]):
+                new_lst.append(x[0][ind:])
+            fd.write("\t} " + '_'.join(new_lst).lower() + ";\n")
+    fd.write("};\n\n")
     fd.write("\tvirtual void init() {\n\n")
 
     enum_value_count = 0
@@ -335,6 +383,11 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
     else:
         fd.write("\t\tstatic UBOPair *_ubo_pairs=NULL;\n")
 
+    if header_data.ubos:
+        for x in header_data.ubos:
+            fd.write("\t\t _name_to_ubo_bindings.insert(\"" + x[0] + "\" ," + x[1] + ");\n")
+        fd.write("\n\n")
+
     fd.write("\t\tstatic const char _vertex_code[]={\n")
     for x in header_data.vertex_lines:
         for c in x:
@@ -357,11 +410,11 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
 
     if output_attribs:
         fd.write("\t\tsetup(_conditional_strings," + str(len(header_data.conditionals)) + ",_attribute_pairs," + str(
-            len(header_data.attributes)) + ", _texunit_pairs," + str(len(header_data.texunits)) + ",_ubo_pairs," + str(len(header_data.ubos)) + ",_feedbacks," + str(
+            len(header_data.attributes)) + ", _texunit_pairs," + str(len(header_data.texunits)) + ", _name_to_ubo_bindings, _ubo_pairs," + str(len(header_data.ubos)) + ",_feedbacks," + str(
             feedback_count) + ",_vertex_code,_fragment_code,_vertex_code_start,_fragment_code_start);\n")
     else:
         fd.write("\t\tsetup(_conditional_strings," + str(len(header_data.conditionals)) + ",_uniform_strings," + str(len(header_data.uniforms)) + ",_texunit_pairs," + str(
-            len(header_data.texunits)) + ",_enums," + str(len(header_data.enums)) + ",_enum_values," + str(enum_value_count) + ",_ubo_pairs," + str(len(header_data.ubos)) + ",_feedbacks," + str(
+            len(header_data.texunits)) + ",_enums," + str(len(header_data.enums)) + ",_enum_values," + str(enum_value_count) + ", _name_to_ubo_bindings, _ubo_pairs, " + str(len(header_data.ubos)) + ",_feedbacks," + str(
             feedback_count) + ",_vertex_code,_fragment_code,_vertex_code_start,_fragment_code_start);\n")
 
     fd.write("\t}\n\n")
@@ -373,41 +426,6 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
             fd.write("\t\t" + x.upper() + ",\n")
         fd.write("\t};\n\n")
         fd.write("\tvoid set_enum_conditional(EnumConditionals p_cond) { _set_enum_conditional(p_cond); }\n")
-
-    fd.write("public:\n")
-    if header_data.ubos:
-        for x in header_data.ubos:
-            offset = 0;
-            fd.write("\tstruct " + x[0] + " {\n")
-            i = 0
-            for uniform in x[2]:
-                uniform_list = re.split(r'\s+', uniform.strip())
-                if len(uniform_list) > 1:                
-                    uniform_type = uniform_list[0]
-                    uniform_name = uniform_list[1]
-                    if get_datatype_c(uniform_type):
-                        datatype_c = get_datatype_c(uniform_type)[0]
-                        array = ""
-                        if get_datatype_c(uniform_type):
-                            array_count = get_datatype_c(uniform_type)[1]
-                            if array_count > 1:
-                                array = "[" + str(array_count) + "]"
-                        fd.write("\t\t" + datatype_c + " " + uniform_name + array + ";\n")
-                        offset += get_datatype_alignment(uniform_type)
-                        align = get_datatype_size(uniform_type) % get_datatype_alignment(uniform_type)
-                        if align != 0:
-                            padding = get_datatype_alignment(uniform_type) - align
-                            pad = int(padding / 4)
-                            fd.write( "\t\tfloat align_" + str(i) + "[" + str(pad) + "];\n" )
-                            i += 1
-                    
-            if offset % 16 != 0: #UBO sizes must be multiples of 16
-                align = offset % 16
-                padding = 16 - align
-                pad = int(padding / 4)
-                fd.write("\t\tfloat _pad[" + str(pad) + "];\n" )
-
-            fd.write("\t};\n\n")
 
     fd.write("};\n\n")
     fd.write("#endif\n\n")

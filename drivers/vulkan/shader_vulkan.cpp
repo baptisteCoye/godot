@@ -60,102 +60,6 @@
 
 ShaderVulkan *ShaderVulkan::active = NULL;
 
-_FORCE_INLINE_ void ShaderVulkan::_set_uniform_variant(GLint p_uniform, const Variant &p_value) {
-	if (p_uniform < 0)
-		return; // do none
-	switch (p_value.get_type()) {
-
-		case Variant::BOOL:
-		case Variant::INT: {
-
-			int val = p_value;
-			glUniform1i(p_uniform, val);
-		} break;
-		case Variant::REAL: {
-
-			real_t val = p_value;
-			glUniform1f(p_uniform, val);
-		} break;
-		case Variant::COLOR: {
-
-			Color val = p_value;
-			glUniform4f(p_uniform, val.r, val.g, val.b, val.a);
-		} break;
-		case Variant::VECTOR2: {
-
-			Vector2 val = p_value;
-			glUniform2f(p_uniform, val.x, val.y);
-		} break;
-		case Variant::VECTOR3: {
-
-			Vector3 val = p_value;
-			glUniform3f(p_uniform, val.x, val.y, val.z);
-		} break;
-		case Variant::PLANE: {
-
-			Plane val = p_value;
-			glUniform4f(p_uniform, val.normal.x, val.normal.y, val.normal.z, val.d);
-		} break;
-		case Variant::QUAT: {
-
-			Quat val = p_value;
-			glUniform4f(p_uniform, val.x, val.y, val.z, val.w);
-		} break;
-
-		case Variant::TRANSFORM2D: {
-
-			Transform2D tr = p_value;
-			GLfloat matrix[16] = { /* build a 16x16 matrix */
-				tr.elements[0][0],
-				tr.elements[0][1],
-				0,
-				0,
-				tr.elements[1][0],
-				tr.elements[1][1],
-				0,
-				0,
-				0,
-				0,
-				1,
-				0,
-				tr.elements[2][0],
-				tr.elements[2][1],
-				0,
-				1
-			};
-
-			glUniformMatrix4fv(p_uniform, 1, false, matrix);
-
-		} break;
-		case Variant::BASIS:
-		case Variant::TRANSFORM: {
-
-			Transform tr = p_value;
-			GLfloat matrix[16] = { /* build a 16x16 matrix */
-				tr.basis.elements[0][0],
-				tr.basis.elements[1][0],
-				tr.basis.elements[2][0],
-				0,
-				tr.basis.elements[0][1],
-				tr.basis.elements[1][1],
-				tr.basis.elements[2][1],
-				0,
-				tr.basis.elements[0][2],
-				tr.basis.elements[1][2],
-				tr.basis.elements[2][2],
-				0,
-				tr.origin.x,
-				tr.origin.y,
-				tr.origin.z,
-				1
-			};
-
-			glUniformMatrix4fv(p_uniform, 1, false, matrix);
-		} break;
-		default: { ERR_FAIL(); } // do nothing
-	}
-}
-
 //#define DEBUG_SHADER
 
 #ifdef DEBUG_SHADER
@@ -168,171 +72,132 @@ _FORCE_INLINE_ void ShaderVulkan::_set_uniform_variant(GLint p_uniform, const Va
 
 #endif
 
-void ShaderVulkan::bind_uniforms() {
-
-	if (!uniforms_dirty) {
-		return;
-	};
-
-	// upload default uniforms
-	const Map<uint32_t, Variant>::Element *E = uniform_defaults.front();
-
-	while (E) {
-		int idx = E->key();
-		int location = version->uniform_location[idx];
-
-		if (location < 0) {
-			E = E->next();
-			continue;
-		}
-
-		const Variant &v = E->value();
-		_set_uniform_variant(location, v);
-		//print_line("uniform "+itos(location)+" value "+v+ " type "+Variant::get_type_name(v.get_type()));
-		E = E->next();
-	};
-
-	const Map<uint32_t, CameraMatrix>::Element *C = uniform_cameras.front();
-	while (C) {
-
-		int location = version->uniform_location[C->key()];
-		if (location < 0) {
-			C = C->next();
-			continue;
-		}
-
-		glUniformMatrix4fv(location, 1, false, &(C->get().matrix[0][0]));
-		C = C->next();
-	};
-
-	uniforms_dirty = false;
-}
-
-PoolByteArray& ShaderVulkan::get_vert_program() const {
+PoolByteArray &ShaderVulkan::get_vert_program() const {
 	return version->vert;
 }
 
-void ShaderVulkan::get_descriptor_bindings(PoolByteArray &p_program, Vector<ShaderVulkan::SPIRVResource> &p_bindings, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkBuffer &p_uniform, size_t p_uniform_size, VkDescriptorSet &p_descriptor_set, Vector<VkWriteDescriptorSet> &p_write_descriptor_set) {
+int32_t ShaderVulkan::get_binding_from_fbo_name(String p_name) const {
+	return name_to_ubo_bindings.find(p_name)->get();
+}
 
-	spirv_cross::Compiler comp(reinterpret_cast<const uint32_t *>(p_program.read().ptr()), p_program.size() / (sizeof(uint32_t) / (sizeof(uint8_t))));
-	spirv_cross::ShaderResources resources = comp.get_shader_resources();
-
-	// https://github.com/KhronosGroup/SPIRV-Cross/wiki/Reflection-API-user-guide
+void ShaderVulkan::get_descriptor_bindings(Vector<ShaderVulkan::SPIRVResource> &p_bindings, VkBuffer &p_uniform, RID_Owner<RasterizerStorageVulkan::VulkanTexture> &texture_owner, VkDescriptorSet &p_descriptor_set, Vector<VkWriteDescriptorSet> &p_write_descriptor_set) {
 
 	//Only one stage flag?
 	VkShaderStageFlags flags;
-	if (comp.get_entry_points_and_stages()[0].execution_model == spv::ExecutionModelFragment) {
-		flags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	} else if (comp.get_entry_points_and_stages()[0].execution_model == spv::ExecutionModelVertex) {
-		flags = VK_SHADER_STAGE_VERTEX_BIT;
-	} else {
-		ERR_PRINT("Can't create descriptor set, unknown stage.");
-	}
 
-	for (size_t i = 0; i < resources.uniform_buffers.size(); i++) {
-		spirv_cross::Resource r = resources.uniform_buffers[i];
-		uint32_t set = comp.get_decoration(r.id, spv::DecorationDescriptorSet);
+	{
+		spirv_cross::Compiler comp_vert(reinterpret_cast<const uint32_t *>(this->get_vert_program().read().ptr()), this->get_vert_program().size() / (sizeof(uint32_t) / (sizeof(uint8_t))));
+		spirv_cross::ShaderResources resources_vert = comp_vert.get_shader_resources();
 
-		const spirv_cross::SPIRType &base_type = comp.get_type(r.base_type_id);
-		const spirv_cross::SPIRType &type = comp.get_type(r.base_type_id);
+		// https://github.com/KhronosGroup/SPIRV-Cross/wiki/Reflection-API-user-guide
 
-		ERR_EXPLAIN("Can't create descriptor set, more than one entry point.")
-		ERR_CONTINUE(comp.get_entry_points_and_stages().size() != 1)
-
-		VkDescriptorSetLayoutBinding sampler_layout_binding = {};
-		sampler_layout_binding.binding = comp.get_decoration(r.id, spv::DecorationBinding);
-		sampler_layout_binding.descriptorCount = 1;
-		sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		sampler_layout_binding.pImmutableSamplers = nullptr;
-
-		sampler_layout_binding.stageFlags = flags;
-		ShaderVulkan::SPIRVResource resource;
-		resource.set = set;
-		resource.binding = sampler_layout_binding;
-		p_bindings.push_back(resource);
-
-		if (p_uniform == VK_NULL_HANDLE) {
-			return;
+		if (comp_vert.get_entry_points_and_stages()[0].execution_model == spv::ExecutionModelFragment) {
+			flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		} else if (comp_vert.get_entry_points_and_stages()[0].execution_model == spv::ExecutionModelVertex) {
+			flags = VK_SHADER_STAGE_VERTEX_BIT;
+		} else {
+			ERR_PRINT("Can't create descriptor set, unknown stage.");
 		}
 
-		bool found = false;
-		for (size_t i = 0; i < CanvasShaderVulkan::get_active()->ubo_count; i++) {
-			if (sampler_layout_binding.binding == CanvasShaderVulkan::get_active()->ubo_pairs[i].index) {
-				found = true;
+		for (size_t i = 0; i < resources_vert.uniform_buffers.size(); i++) {
+			spirv_cross::Resource r = resources_vert.uniform_buffers[i];
+			uint32_t set = comp_vert.get_decoration(r.id, spv::DecorationDescriptorSet);
+
+			const spirv_cross::SPIRType &base_type = comp_vert.get_type(r.base_type_id);
+			const spirv_cross::SPIRType &type = comp_vert.get_type(r.base_type_id);
+
+			ERR_EXPLAIN("Can't create descriptor set, more than one entry point.")
+			ERR_CONTINUE(comp_vert.get_entry_points_and_stages().size() != 1)
+
+			VkDescriptorSetLayoutBinding sampler_layout_binding = {};
+			sampler_layout_binding.binding = comp_vert.get_decoration(r.id, spv::DecorationBinding);
+			sampler_layout_binding.descriptorCount = 1;
+			sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			sampler_layout_binding.pImmutableSamplers = nullptr;
+
+			sampler_layout_binding.stageFlags = flags;
+			ShaderVulkan::SPIRVResource resource;
+			resource.set = set;
+			resource.binding = sampler_layout_binding;
+			p_bindings.push_back(resource);
+
+			for (Map<int32_t, UBO>::Element *E = ubos.front(); E; E = E->next()) {
+				VkDescriptorBufferInfo buffer_info = {};
+				buffer_info.buffer = p_uniform;
+				buffer_info.offset = 0;
+				buffer_info.range = sizeof(E->get());
+
+				// Given version determine which buffers to upload
+				VkWriteDescriptorSet buffer_descriptor = {};
+				buffer_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				buffer_descriptor.dstSet = p_descriptor_set;
+				buffer_descriptor.dstBinding = E->key();
+				buffer_descriptor.dstArrayElement = 0;
+				buffer_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				buffer_descriptor.descriptorCount = 1;
+				buffer_descriptor.pBufferInfo = &buffer_info;
+
+				p_write_descriptor_set.push_back(buffer_descriptor);
 			}
 		}
-		if (!found) {
-			return;
-		}
-
-		VkDescriptorBufferInfo buffer_info = {};
-		buffer_info.buffer = p_uniform;
-		buffer_info.offset = 0;
-		buffer_info.range = p_uniform_size;
-
-		VkWriteDescriptorSet buffer_descriptor = {};
-		buffer_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		buffer_descriptor.dstSet = p_descriptor_set;
-		buffer_descriptor.dstBinding = comp.get_decoration(r.id, spv::DecorationBinding);
-		buffer_descriptor.dstArrayElement = 0;
-		buffer_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		buffer_descriptor.descriptorCount = 1;
-		buffer_descriptor.pBufferInfo = &buffer_info;
-
-		p_write_descriptor_set.push_back(buffer_descriptor);
 	}
 
-	VkWriteDescriptorSet sampler_descriptor = {};
+	{
+		spirv_cross::Compiler comp_frag(reinterpret_cast<const uint32_t *>(this->get_vert_program().read().ptr()), this->get_vert_program().size() / (sizeof(uint32_t) / (sizeof(uint8_t))));
+		spirv_cross::ShaderResources resources_frag = comp_frag.get_shader_resources();
 
-	for (size_t i = 0; i < resources.sampled_images.size(); i++) {
-		spirv_cross::Resource r = resources.sampled_images[i];
-		uint32_t set = comp.get_decoration(r.id, spv::DecorationDescriptorSet);
+		VkWriteDescriptorSet sampler_descriptor = {};
 
-		const spirv_cross::SPIRType &type = comp.get_type(r.base_type_id);
-		std::vector<spirv_cross::EntryPoint> entry_points_and_stages = comp.get_entry_points_and_stages();
+		for (size_t i = 0; i < resources_frag.sampled_images.size(); i++) {
+			spirv_cross::Resource r = resources_frag.sampled_images[i];
+			uint32_t set = comp_frag.get_decoration(r.id, spv::DecorationDescriptorSet);
 
-		ERR_EXPLAIN("Can't create descriptor set, more than one entry point.")
-		ERR_CONTINUE(entry_points_and_stages.size() != 1)
+			const spirv_cross::SPIRType &type = comp_frag.get_type(r.base_type_id);
+			std::vector<spirv_cross::EntryPoint> entry_points_and_stages = comp_frag.get_entry_points_and_stages();
 
-		VkDescriptorSetLayoutBinding sampler_layout_binding = {};
-		sampler_layout_binding.binding = comp.get_decoration(r.id, spv::DecorationBinding);
-		sampler_layout_binding.descriptorCount = 1;
-		sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		sampler_layout_binding.pImmutableSamplers = nullptr;
-		sampler_layout_binding.stageFlags = flags;
+			ERR_EXPLAIN("Can't create descriptor set, more than one entry point.")
+			ERR_CONTINUE(entry_points_and_stages.size() != 1)
 
-		ShaderVulkan::SPIRVResource resource;
-		resource.set = set;
-		resource.binding = sampler_layout_binding;
-		p_bindings.push_back(resource);
+			VkDescriptorSetLayoutBinding sampler_layout_binding = {};
+			sampler_layout_binding.binding = comp_frag.get_decoration(r.id, spv::DecorationBinding);
+			sampler_layout_binding.descriptorCount = 1;
+			sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			sampler_layout_binding.pImmutableSamplers = nullptr;
+			sampler_layout_binding.stageFlags = flags;
 
-		List<RID> textures;
-		texture_owner.get_owned_list(&textures);
+			ShaderVulkan::SPIRVResource resource;
+			resource.set = set;
+			resource.binding = sampler_layout_binding;
+			p_bindings.push_back(resource);
 
-		if (textures.size() == 0) {
-			return;
-		}
+			List<RID> textures;
+			texture_owner.get_owned_list(&textures);
 
-		Vector<VkDescriptorImageInfo> image_infos;
-		for (List<RID>::Element *E = textures.front(); E; E = E->next()) {
-			VkDescriptorImageInfo image_info = {};
-			image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			RasterizerStorageVulkan::VulkanTexture *t = texture_owner.getornull(E->get());
-			image_info.imageView = t->texture_image_view;
-			image_info.sampler = t->texture_sampler;
-			image_infos.push_back(image_info);
-		}
+			if (textures.size() == 0) {
+				return;
+			}
 
-		sampler_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		sampler_descriptor.dstSet = p_descriptor_set;
-		sampler_descriptor.dstBinding = comp.get_decoration(r.id, spv::DecorationBinding);
-		sampler_descriptor.dstArrayElement = 0;
-		sampler_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		sampler_descriptor.descriptorCount = image_infos.size();
-		sampler_descriptor.pImageInfo = image_infos.ptr();
+			Vector<VkDescriptorImageInfo> image_infos;
+			for (List<RID>::Element *E = textures.front(); E; E = E->next()) {
+				VkDescriptorImageInfo image_info = {};
+				image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				RasterizerStorageVulkan::VulkanTexture *t = texture_owner.getornull(E->get());
+				image_info.imageView = t->texture_image_view;
+				image_info.sampler = t->texture_sampler;
+				image_infos.push_back(image_info);
+			}
 
-		if (image_infos.size() != 0) {
-			p_write_descriptor_set.push_back(sampler_descriptor);
+			sampler_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			sampler_descriptor.dstSet = p_descriptor_set;
+			sampler_descriptor.dstBinding = comp_frag.get_decoration(r.id, spv::DecorationBinding);
+			sampler_descriptor.dstArrayElement = 0;
+			sampler_descriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			sampler_descriptor.descriptorCount = image_infos.size();
+			sampler_descriptor.pImageInfo = image_infos.ptr();
+
+			if (image_infos.size() != 0) {
+				p_write_descriptor_set.push_back(sampler_descriptor);
+			}
 		}
 	}
 }
@@ -369,12 +234,9 @@ void ShaderVulkan::compile_shader_fail(const String p_source, const String p_inp
 		ERR_PRINT(message.utf8().ptr());
 	}
 	ERR_EXPLAIN(message);
-//	ERR_FAIL_COND(num_errors != 0, message);
+	//	ERR_FAIL_COND(num_errors != 0, message);
 }
 
-_FORCE_INLINE_ ShaderVulkan *ShaderVulkan::get_active() {
-	return active;
-}
 
 bool ShaderVulkan::bind() {
 
@@ -587,7 +449,7 @@ ShaderVulkan::Version *ShaderVulkan::get_current_version() {
 	return &v;
 }
 
-void ShaderVulkan::setup(const char **p_conditional_defines, int p_conditional_count, const AttributePair *p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const UBOPair *p_ubo_pairs, int p_ubo_pair_count, const Feedback *p_feedback, int p_feedback_count, const char *p_vertex_code, const char *p_fragment_code, int p_vertex_code_start, int p_fragment_code_start) {
+void ShaderVulkan::setup(const char **p_conditional_defines, int p_conditional_count, const AttributePair *p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const Map<String, int32_t> p_name_to_ubo_bindings, const UBOPair *p_ubo_pairs, int p_ubo_pair_count, const Feedback *p_feedback, int p_feedback_count, const char *p_vertex_code, const char *p_fragment_code, int p_vertex_code_start, int p_fragment_code_start) {
 
 	ERR_FAIL_COND(version);
 	conditional_version.key = 0;
@@ -598,6 +460,7 @@ void ShaderVulkan::setup(const char **p_conditional_defines, int p_conditional_c
 	fragment_code = p_fragment_code;
 	texunit_pairs = p_texunit_pairs;
 	texunit_pair_count = p_texunit_pair_count;
+	name_to_ubo_bindings = p_name_to_ubo_bindings;
 	vertex_code_start = p_vertex_code_start;
 	fragment_code_start = p_fragment_code_start;
 	attribute_pairs = p_attribute_pairs;
@@ -708,12 +571,6 @@ _FORCE_INLINE_ void ShaderVulkan::set_texture_uniform(int p_idx, const Variant &
 	_set_uniform_variant(version->texture_uniform_locations[p_idx], p_value);
 }
 
-_FORCE_INLINE_ GLint ShaderVulkan::get_texture_uniform_location(int p_idx) {
-	ERR_FAIL_COND_V(!version, -1);
-	ERR_FAIL_INDEX_V(p_idx, version->texture_uniform_locations.size(), -1);
-	return version->texture_uniform_locations[p_idx];
-}
-
 void ShaderVulkan::finish() {
 
 	const VersionKey *V = NULL;
@@ -727,7 +584,7 @@ void ShaderVulkan::finish() {
 	}
 }
 
-PoolByteArray& ShaderVulkan::get_frag_program() const {
+PoolByteArray &ShaderVulkan::get_frag_program() const {
 	return version->frag;
 }
 
@@ -795,17 +652,6 @@ void ShaderVulkan::free_custom_shader(uint32_t p_code_id) {
 	custom_code_map.erase(p_code_id);
 }
 
-void ShaderVulkan::set_uniform_default(int p_idx, const Variant &p_value) {
-	if (p_value.get_type() == Variant::NIL) {
-
-		uniform_defaults.erase(p_idx);
-	} else {
-
-		uniform_defaults[p_idx] = p_value;
-	}
-	uniforms_dirty = true;
-}
-
 void ShaderVulkan::set_base_material_tex_index(int p_idx) {
 
 	base_material_tex_index = p_idx;
@@ -816,6 +662,7 @@ void ShaderVulkan::add_custom_define(const String &p_define) {
 }
 
 ShaderVulkan::ShaderVulkan() {
+	ubos = Map<int32_t, UBO>();
 	version = NULL;
 	last_custom_code = 1;
 	uniforms_dirty = true;
@@ -825,10 +672,4 @@ ShaderVulkan::ShaderVulkan() {
 ShaderVulkan::~ShaderVulkan() {
 
 	finish();
-}
-
-int ShaderVulkan::_get_uniform(int p_which) const {
-	ERR_FAIL_INDEX_V(p_which, uniform_count, -1);
-	ERR_FAIL_COND_V(!version, -1);
-	return version->uniform_location[p_which];
 }
