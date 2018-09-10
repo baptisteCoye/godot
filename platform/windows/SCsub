@@ -17,7 +17,7 @@ common_win = [
     "joypad.cpp",
     "power_windows.cpp",
     "windows_terminal_logger.cpp",
-	"vma_usage.cpp",
+	"vma_windows.cpp",
 	"glad_vulkan_win.cpp"
 ]
 

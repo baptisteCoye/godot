@@ -1256,11 +1256,15 @@ Error OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int
 		SetWindowPos(hWnd, video_mode.always_on_top ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 	}
 
-#if defined(OPENGL_ENABLED)
+#if defined(OPENGL_ENABLED) || defined(VULKAN_ENABLED)
 
 	bool gles3_context = true;
+	bool vulkan_context = true;
 	if (p_video_driver == VIDEO_DRIVER_GLES2) {
 		gles3_context = false;
+	} else if (p_video_driver == VIDEO_DRIVER_VULKAN) {
+		gles3_context = false;
+		vulkan_context = true;
 	}
 
 	bool editor = Engine::get_singleton()->is_editor_hint();
@@ -1268,7 +1272,12 @@ Error OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int
 
 	render_context = NULL;
 	while (!render_context) {
-		render_context = memnew(RenderingContextGL_Win(hWnd, gles3_context));
+		if (vulkan_context) {
+			render_context = memnew(RenderingContextVulkan_Win(hWnd));
+			break;
+		} else {
+			render_context = memnew(RenderingContextGL_Win(hWnd, gles3_context));
+		}
 
 		if (render_context->initialize() != OK) {
 			memdelete(render_context);
@@ -1305,6 +1314,11 @@ Error OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int
 					break;
 				}
 			}
+		} else if (vulkan_context) {
+				render_context->initialize();
+				RasterizerVulkan::register_config();
+				RasterizerVulkan::make_current(render_context);
+				break;
 		} else {
 			if (RasterizerGLES2::is_viable() == OK) {
 				RasterizerGLES2::register_config();

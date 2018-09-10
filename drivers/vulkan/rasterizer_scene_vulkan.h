@@ -4,10 +4,10 @@
 #include "drivers/vulkan/shaders/canvas.glsl.gen.h"
 #ifdef _WIN32
 #include "platform/windows/rendering_context_vulkan_win.h"
-#include "platform/windows/vma_usage.h"
+#include "platform/windows/vma_windows.h"
 #elif defined(__linux__)
 #include "platform/x11/rendering_context_vulkan_x11.h"
-#include "platform/x11/vma_usage.h"
+#include "platform/x11/vma_x11.h"
 #endif
 
 #include "rasterizer_storage_vulkan.h"

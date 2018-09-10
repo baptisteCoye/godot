@@ -59,17 +59,29 @@ glslang_sources = [glslang_dir + file for file in glslang_sources]
 env_shaderc.add_source_files(env.drivers_sources, glslang_sources)
 env_shaderc.Append(CPPPATH=[glslang_dir])
 
-#glslang OSDependent
-glslang_os_dependent_dir = "#thirdparty/shaderc/src/third_party/glslang/glslang/OSDependent/Unix/"
-glslang_os_dependent_sources = [
-    "ossource.cpp",
 
-]
-glslang_os_dependent_sources = [glslang_os_dependent_dir + file for file in glslang_os_dependent_sources]
-env_shaderc.add_source_files(env.drivers_sources, glslang_os_dependent_sources)
-env_shaderc.Append(CPPPATH=[glslang_os_dependent_dir])
+if (os.name == "posix"):
+	#glslang OSDependent
+	glslang_os_dependent_dir = "#thirdparty/shaderc/src/third_party/glslang/glslang/OSDependent/Unix/"
+	glslang_os_dependent_sources = [
+		"ossource.cpp",
 
-#OSDependent Unix TODO
+	]
+	glslang_os_dependent_sources = [glslang_os_dependent_dir + file for file in glslang_os_dependent_sources]
+	env_shaderc.add_source_files(env.drivers_sources, glslang_os_dependent_sources)
+	env_shaderc.Append(CPPPATH=[glslang_os_dependent_dir])
+
+if (os.name == "nt"):
+	#glslang OSDependent
+	glslang_os_dependent_dir = "#thirdparty/shaderc/src/third_party/glslang/glslang/OSDependent/Windows/"
+	glslang_os_dependent_sources = [
+		"ossource.cpp",
+
+	]
+	glslang_os_dependent_sources = [glslang_os_dependent_dir + file for file in glslang_os_dependent_sources]
+	env_shaderc.add_source_files(env.drivers_sources, glslang_os_dependent_sources)
+	env_shaderc.Append(CPPPATH=[glslang_os_dependent_dir])
+
 #OGLCompilersDLL
 ogl_compilers_dll_dir = "#thirdparty/shaderc/src/third_party/glslang/OGLCompilersDLL/"
 ogl_compilers_dll_sources = [
@@ -238,12 +250,19 @@ env_shaderc.Append(CPPPATH="#thirdparty/shaderc/src/third_party/spirv-tools/sour
 
 #libSPIRV-Tools
 spirv_tools_dir= "#thirdparty/shaderc/src/third_party/spirv-tools/source/"
-spirv_tools_sources = [
+
+spirv_tools_sources = []
+
+if (os.name == "posix"):
+	spirv_tools_sources.extend([
+		"util/timer.cpp"
+		])
+
+spirv_tools_sources.extend([
 	"util/bit_stream.cpp",
 	"util/bit_vector.cpp",
 	"util/parse_number.cpp",
 	"util/string_utils.cpp",
-	"util/timer.cpp",
 	"assembly_grammar.cpp",
 	"binary.cpp",
 	"diagnostic.cpp",
@@ -298,7 +317,7 @@ spirv_tools_sources = [
 	"val/instruction.cpp",
 	"val/validation_state.cpp",
 	"software_version.cpp",
-]
+])
 spirv_tools_sources = [spirv_tools_dir + file for file in spirv_tools_sources]
 env_shaderc.add_source_files(env.drivers_sources, spirv_tools_sources)
 env_shaderc.Append(CPPPATH=[spirv_tools_dir])

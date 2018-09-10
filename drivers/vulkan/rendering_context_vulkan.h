@@ -42,12 +42,11 @@
 #ifdef _WIN32
 #include "platform/windows/os_windows.h"
 #include "platform/windows/glad_vulkan_win.h"
+#include "platform/windows/vma_windows.h"
 #elif defined(__linux__)
 #include "os_x11.h"
 #include "platform/x11/glad_vulkan_xlib.h"
-#include "platform/x11/vma_usage.h"
-// #define VMA_IMPLEMENTATION
-// #include "thirdparty/vulkan_memory_allocator/vk_mem_alloc.h"
+#include "platform/x11/vma_x11.h"
 #endif
 
 #include "thirdparty/shaderc/src/libshaderc/include/shaderc/shaderc.h"

@@ -31,7 +31,7 @@
 
 #include "glad_vulkan_win.h"
 
-#include "vma_usage.h"
+#include "vma_windows.h"
 #include "os_windows.h"
 
 #include "platform/windows/rendering_context_vulkan_win.h"

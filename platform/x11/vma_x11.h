@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  rendering_context_vulkan_win.h                                       */
+/*  vma_usage.h				                                             */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -27,46 +27,36 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+#ifndef VULKAN_MEMORY_ALLOCATOR_H
+#define VULKAN_MEMORY_ALLOCATOR_H
 
-#ifndef RENDERING_CONTEXT_VULKAN_WIN_H
-#define RENDERING_CONTEXT_VULKAN_WIN_H
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VkMemoryDedicatedAllocateInfoKHR VkMemoryDedicatedAllocateInfo
+#define VkBufferMemoryRequirementsInfo2KHR VkBufferMemoryRequirementsInfo2
+#define VkMemoryDedicatedRequirementsKHR VkMemoryDedicatedRequirements
+#define VkMemoryRequirements2KHR VkMemoryRequirements2
+#define VkImageMemoryRequirementsInfo2KHR VkImageMemoryRequirementsInfo2
 
-//#if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
-#include "typedefs.h"
+#include "reference.h"
 
-#include "drivers/vulkan/rendering_context_vulkan.h"
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#define NOMINMAX
+#define VMA_MAX MAX
+#define VMA_MIN MIN
+#pragma warning(push, 4)
+#pragma warning(disable : 4127) // conditional expression is constant
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4189) // local variable is initialized but not referenced
+#endif
+
 #include "thirdparty/glad2/include/glad/vulkan.h"
-#include "vma_windows.h"
 
-class RenderingContextVulkan_Win : public RenderingContextVulkan {
-private:
-	HWND hWnd;
+#include "thirdparty/vulkan_memory_allocator/vk_mem_alloc.h"
 
-	unsigned int pixel_format;
-	bool use_vsync;
-	int glad_vk_version = 0;
-
-public:
-
-public:
-	virtual void release_current();
-	virtual void make_current();
-	virtual void swap_buffers();
-	virtual int get_window_width();
-	virtual int get_window_height();
-
-	virtual Error initialize();
-
-	virtual void set_use_vsync(bool p_use);
-	virtual bool is_using_vsync() const;
-
-	RenderingContextVulkan_Win(HWND hwnd);
-	~RenderingContextVulkan_Win();
-
-public:
-	Error create_surface();
-};
-
-//#endif
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 #endif
