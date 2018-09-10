@@ -46,6 +46,8 @@ private:
 	::Display *x11_display;
 	::Window &x11_window;
 
+	int glad_vk_version = 0;
+
 public:
 	virtual void release_current();
 	virtual void make_current();
@@ -60,6 +62,8 @@ public:
 
 	RenderingContextVulkan_X11(::Display *p_x11_display, ::Window &p_x11_window, const OS::VideoMode &p_default_video_mode);
 	~RenderingContextVulkan_X11();
+public:
+	Error create_surface();
 };
 
 //#endif

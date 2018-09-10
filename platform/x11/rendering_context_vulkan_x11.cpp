@@ -98,6 +98,26 @@ Error RenderingContextVulkan_X11::initialize() {
 
 	XSync(x11_display, False);
 
+	Error error;
+	if ((error = _create_instance()) != OK) {
+		return error;
+	}
+
+	_enable_debug();
+
+	if ((error = create_surface()) != OK) {
+		return error;
+	}
+	if ((error = _pick_physical_device()) != OK) {
+		return error;
+	}
+	if ((error = _create_logical_device()) != OK) {
+		return error;
+	}
+	if ((error = _create_swap_chain()) != OK) {
+		return error;
+	}
+
 	return OK;
 }
 
@@ -112,9 +132,33 @@ RenderingContextVulkan_X11::RenderingContextVulkan_X11(::Display *p_x11_display,
 
 	default_video_mode = p_default_video_mode;
 	x11_display = p_x11_display;
+
+	device_extensions.insert(String(VK_KHR_SWAPCHAIN_EXTENSION_NAME).utf8());
+	//validation_layers.insert(String("VK_LAYER_LUNARG_standard_validation").utf8());
+
+	glad_vk_version = gladLoaderLoadVulkan(NULL, NULL, NULL);
+	if (!glad_vk_version) {
+	//	ERR_FAIL("Unable to load Vulkan symbols!\n",
+	//			"gladLoad Failure");
+	}
 }
 
 RenderingContextVulkan_X11::~RenderingContextVulkan_X11() {
+}
+
+Error RenderingContextVulkan_X11::create_surface() {
+	VkXlibSurfaceCreateInfoKHR create_info = {};
+	create_info.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+	create_info.dpy = x11_display;
+	create_info.window = x11_window;
+
+	PFN_vkCreateXlibSurfaceKHR CreatevkCreateXlibSurfaceKHR = (PFN_vkCreateXlibSurfaceKHR)vkGetInstanceProcAddr(*_get_instance(), "vkCreateXlibSurfaceKHR");
+
+	surface = VK_NULL_HANDLE;
+	if (!CreatevkCreateXlibSurfaceKHR || CreatevkCreateXlibSurfaceKHR(*_get_instance(), &create_info, NULL, &surface) != VK_SUCCESS) {
+	//	ERR_FAIL_V(ERR_CANT_CREATE, "Can't Create Window Surface.");
+	}
+	return OK;
 }
 
 #endif
