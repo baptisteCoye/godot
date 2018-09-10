@@ -130,81 +130,82 @@ RasterizerSceneVulkan *RasterizerVulkan::get_scene() {
 }
 
 void RasterizerVulkan::set_boot_image(const Ref<Image> &p_image, const Color &p_color, bool p_scale) {
-	if (p_image.is_null() || p_image->empty())
-		return;
+	//if (p_image.is_null() || p_image->empty())
+	//	return;
 
-	uint32_t window_w = OS::get_singleton()->get_video_mode().width;
-	uint32_t window_h = OS::get_singleton()->get_video_mode().height;
+	//uint32_t window_w = OS::get_singleton()->get_video_mode().width;
+	//uint32_t window_h = OS::get_singleton()->get_video_mode().height;
 
-	Rect2 imgrect(0, 0, p_image->get_width(), p_image->get_height());
-	Rect2 screenrect;
-	if (p_scale) {
+	//Rect2 imgrect(0, 0, p_image->get_width(), p_image->get_height());
+	//Rect2 screenrect;
+	//if (p_scale) {
 
-		if (window_w > window_h) {
-			//scale horizontally
-			screenrect.size.y = window_h;
-			screenrect.size.x = imgrect.size.x * window_h / imgrect.size.y;
-			screenrect.position.x = (window_w - screenrect.size.x) / 2;
+	//	if (window_w > window_h) {
+	//		//scale horizontally
+	//		screenrect.size.y = window_h;
+	//		screenrect.size.x = imgrect.size.x * window_h / imgrect.size.y;
+	//		screenrect.position.x = (window_w - screenrect.size.x) / 2;
 
-		} else {
-			//scale vertically
-			screenrect.size.x = window_w;
-			screenrect.size.y = imgrect.size.y * window_w / imgrect.size.x;
-			screenrect.position.y = (window_h - screenrect.size.y) / 2;
-		}
-	} else {
+	//	} else {
+	//		//scale vertically
+	//		screenrect.size.x = window_w;
+	//		screenrect.size.y = imgrect.size.y * window_w / imgrect.size.x;
+	//		screenrect.position.y = (window_h - screenrect.size.y) / 2;
+	//	}
+	//} else {
 
-		screenrect = imgrect;
-		screenrect.position += ((Size2(window_w, window_h) - screenrect.size) / 2.0).floor();
-	}
-	screenrect.set_size(Vector2(1.f, screenrect.size.aspect()));
+	//	screenrect = imgrect;
+	//	screenrect.position += ((Size2(window_w, window_h) - screenrect.size) / 2.0).floor();
+	//}
+	//screenrect.set_size(Vector2(1.f, screenrect.size.aspect()));
 
-	storage->data.indices.clear();
-	storage->data.indices.push_back(0);
-	storage->data.indices.push_back(1);
-	storage->data.indices.push_back(2);
-	storage->data.indices.push_back(2);
-	storage->data.indices.push_back(3);
-	storage->data.indices.push_back(0);
+	//storage->data.indices.clear();
+	//storage->data.indices.push_back(0);
+	//storage->data.indices.push_back(1);
+	//storage->data.indices.push_back(2);
+	//storage->data.indices.push_back(2);
+	//storage->data.indices.push_back(3);
+	//storage->data.indices.push_back(0);
 
-	storage->data.vertices.clear();
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, -screenrect.size.height), Color(1.0f, 0.0f, 0.0f, 1.f), Vector2(1.0f, 0.0f) });
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, -screenrect.size.height), Color(0.0f, 1.0f, 0.0f, 1.f), Vector2(0.0f, 0.0f) });
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, screenrect.size.height), Color(0.0f, 0.0f, 1.0f, 1.f), Vector2(0.0f, 1.0f) });
-	storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, screenrect.size.height), Color(1.0f, 1.0f, 1.0f, 1.f), Vector2(1.0f, 1.0f) });
+	//storage->data.vertices.clear();
+	//storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, -screenrect.size.height), Color(1.0f, 0.0f, 0.0f, 1.f), Vector2(1.0f, 0.0f) });
+	//storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, -screenrect.size.height), Color(0.0f, 1.0f, 0.0f, 1.f), Vector2(0.0f, 0.0f) });
+	//storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(screenrect.size.width, screenrect.size.height), Color(0.0f, 0.0f, 1.0f, 1.f), Vector2(0.0f, 1.0f) });
+	//storage->data.vertices.push_back(RasterizerStorageVulkan::Vertex{ Vector2(-screenrect.size.width, screenrect.size.height), Color(1.0f, 1.0f, 1.0f, 1.f), Vector2(1.0f, 1.0f) });
 
-	if (OS::get_singleton()->get_window_per_pixel_transparency_enabled()) {
-		storage->frame.clear_request_color = Color(0.0f, 0.0f, 0.0f, 0.0f);
-	} else {
-		storage->frame.clear_request_color = Color(p_color.r, p_color.g, p_color.b, 1.0f);
-	}
+	//if (OS::get_singleton()->get_window_per_pixel_transparency_enabled()) {
+	//	storage->frame.clear_request_color = Color(0.0f, 0.0f, 0.0f, 0.0f);
+	//} else {
+	//	storage->frame.clear_request_color = Color(p_color.r, p_color.g, p_color.b, 1.0f);
+	//}
 
-	begin_frame(0.0);
+	//begin_frame(0.0);
 
-	canvas->canvas_begin();
-	canvas->_create_uniform_buffers();
+	//canvas->canvas_begin();
+	//canvas->_create_uniform_buffers();
 
-	RID texture = storage->texture_create();
-	storage->texture_allocate(texture, p_image->get_width(), p_image->get_height(), 0, p_image->get_format(), VS::TextureType::TEXTURE_TYPE_2D);
-	storage->texture_set_data(texture, p_image);
-	_create_descriptor_set_layout();
-	_create_descriptor_sets();
-	_create_graphics_pipeline();
-	canvas->_update_uniform_buffer(storage->frame.image_index);
+	//RID texture = storage->texture_create();
+	//storage->texture_allocate(texture, p_image->get_width(), p_image->get_height(), 0, p_image->get_format(), VS::TextureType::TEXTURE_TYPE_2D);
+	//storage->texture_set_data(texture, p_image);
+	//_create_descriptor_set_layout();
+	//_create_descriptor_sets();
+	
+	//_create_graphics_pipeline();
+	//canvas->_update_uniform_buffer(storage->frame.image_index);
 
-	_create_index_buffer(storage->data.indices, storage->data.index_buffer);
-	_create_vertex_buffer(storage->data.vertices, storage->data.vertex_buffer);
+	//_create_index_buffer(storage->data.indices, storage->data.index_buffer);
+	//_create_vertex_buffer(storage->data.vertices, storage->data.vertex_buffer);
 
-	canvas->draw_generic_textured_rect(screenrect, Rect2(0, 0, 1, 1));
-	_update_descriptors();
+	//canvas->draw_generic_textured_rect(screenrect, Rect2(0, 0, 1, 1));
+	//_update_descriptors();
 
-	canvas->canvas_end();
+	//canvas->canvas_end();
 
-	_render_pass_begin();
+	//_render_pass_begin();
 
-	end_frame(true);
+	//end_frame(true);
 
-	storage->free(texture); // free since it's only one frame that stays there
+	//storage->free(texture); // free since it's only one frame that stays there
 }
 
 void RasterizerVulkan::_render_pass_begin() {
