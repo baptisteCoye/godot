@@ -447,26 +447,26 @@ def build_vulkan_headers(target, source, env):
 
 def get_datatype_c(p_type):
 	switcher = {
-		"void": ["void", 0],
-		"bool": ["bool", 4],
-		"bvec2": ["bool", 8],
-		"bvec3": ["bool", 12],
-		"bvec4": ["bool", 16],
-		"int": ["int32_t", 4],
-		"ivec2": ["int32_t", 8],
-		"ivec3": ["int32_t", 12],
-		"ivec4": ["int32_t", 16],
-		"uint": ["uint32_t", 4],
-		"uvec2": ["uint32_t", 8],
-		"uvec3": ["uint32_t", 12],
-		"uvec4": ["uiint32_t", 16],
-		"float": ["float", 4],
-		"vec2": ["float", 8],
-		"vec3": ["float", 12],
-		"vec4": ["float", 16],
-		"mat2": ["float", 32],
-		"mat3":	["float", 48],
-		"mat4": ["float", 64]
+		"void": ["void", 1],
+		"bool": ["bool", 1],
+		"bvec2": ["bool", 2],
+		"bvec3": ["bool", 3],
+		"bvec4": ["bool", 4],
+		"int": ["int32_t", 1],
+		"ivec2": ["int32_t", 2],
+		"ivec3": ["int32_t", 3],
+		"ivec4": ["int32_t", 4],
+		"uint": ["uint32_t", 1],
+		"uvec2": ["uint32_t", 2],
+		"uvec3": ["uint32_t", 3],
+		"uvec4": ["uiint32_t", 4],
+		"float": ["float", 1],
+		"vec2": ["float", 2],
+		"vec3": ["float", 3],
+		"vec4": ["float", 4],
+		"mat2": ["float", 4],
+		"mat3":	["float", 9],
+		"mat4": ["float", 16]
 	}
 	return switcher.get(p_type)
     
