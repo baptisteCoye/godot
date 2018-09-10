@@ -515,11 +515,11 @@ void RasterizerVulkan::_create_descriptor_set_layout() {
 	VkBuffer empty_buffer = VK_NULL_HANDLE;
 	VkDescriptorSet empty_set = VK_NULL_HANDLE;
 	RID_Owner<RasterizerStorageVulkan::VulkanTexture> zero = RID_Owner<RasterizerStorageVulkan::VulkanTexture>();
-	canvas->state.canvas_fbos.screen_u_v = {};
-	canvas->state.canvas_fbos.modulate = {};
+	canvas->state.canvas_ubos.screen_u_v = {};
+	canvas->state.canvas_ubos.modulate = {};
 
-	canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::SCREEN_U_V, canvas->state.canvas_fbos.screen_u_v);
-	canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::MODULATE, canvas->state.canvas_fbos.modulate);
+	canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::SCREEN_U_V, canvas->state.canvas_ubos.screen_u_v);
+	canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::MODULATE, canvas->state.canvas_ubos.modulate);
 	canvas->state.canvas_shader.get_descriptor_bindings(bindings, empty_buffer, zero, empty_set, Vector<VkWriteDescriptorSet>());
 
 	Vector<VkDescriptorSetLayoutBinding> b;
@@ -546,21 +546,25 @@ void RasterizerVulkan::_create_descriptor_set_layout() {
 void RasterizerVulkan::_create_graphics_pipeline() {
 	VkShaderModule vert_shader_module;
 	VkShaderModule frag_shader_module;
-	//canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::get_active()->get_binding_from_fbo_name("Modulate"), canvas->state.canvas_fbos.modulate(Color(1, 1, 1, 1)));
-	//canvas->state.canvas_shader.set_uniform(CanvasShaderVulkan::MODELVIEW_MATRIX, Transform2D());
-	//canvas->state.canvas_shader.set_uniform(CanvasShaderVulkan::EXTRA_MATRIX, Transform2D());
-	//if (storage->frame.current_rt) {
-	//	canvas->state.canvas_shader.set_uniform(CanvasShaderVulkan::SCREEN_PIXEL_SIZE, Vector2(1.0 / storage->frame.current_rt->width, 1.0 / storage->frame.current_rt->height));
-	//} else {
-	//	canvas->state.canvas_shader.set_uniform(CanvasShaderVulkan::SCREEN_PIXEL_SIZE, Vector2(1.0, 1.0));
-	//}
+	canvas->state.canvas_ubos.modulate.final_modulate;
+	Color color(1.0f,
+			1.0f,
+			1.0f,
+			1.0f);
+	memcpy(canvas->state.canvas_ubos.modulate.final_modulate, &color, sizeof(Color));
+	canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::MODULATE, canvas->state.canvas_ubos.modulate);
+	memcpy(canvas->state.canvas_ubos.canvas_item_data.modelview_matrix, &Transform(), sizeof(Transform));
+	memcpy(canvas->state.canvas_ubos.canvas_item_data.extra_matrix, &Transform(), sizeof(Transform));
+	memcpy(canvas->state.canvas_ubos.canvas_item_data.projection_matrix, &canvas->state.vp, sizeof(Transform));
+	canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::CANVAS_ITEM_DATA, canvas->state.canvas_ubos.canvas_item_data);
+	if (storage->frame.current_rt) {
+		memcpy(canvas->state.canvas_ubos.screen_u_v.screen_pixel_size, &Vector2(1.0 / storage->frame.current_rt->width, 1.0 / storage->frame.current_rt->height), sizeof(Vector2));
+		canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::SCREEN_U_V, canvas->state.canvas_ubos.screen_u_v);
+	} else {
+		memcpy(canvas->state.canvas_ubos.screen_u_v.screen_pixel_size, &Vector2(1.0, 1.0), sizeof(Vector2));
+		canvas->state.canvas_shader.set_uniform_buffer_object(CanvasShaderVulkan::SCREEN_U_V, canvas->state.canvas_ubos.screen_u_v);
+	}
 
-	//state.canvas_shader.set_uniform(CanvasShaderGLES3::PROJECTION_MATRIX,state.vp);
-	//state.canvas_shader.set_uniform(CanvasShaderGLES3::MODELVIEW_MATRIX,Transform());
-	//state.canvas_shader.set_uniform(CanvasShaderGLES3::EXTRA_MATRIX,Transform());
-
-	//glBindBufferBase(GL_UNIFORM_BUFFER, 0, state.canvas_item_ubo);
-	//glBindVertexArray(data.canvas_quad_array);
 	canvas->state.using_texture_rect = true;
 	canvas->state.using_ninepatch = false;
 	canvas->state.using_skeleton = false;

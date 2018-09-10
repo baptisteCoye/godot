@@ -29,7 +29,7 @@ public:
 	RasterizerStorageVulkan *storage;
 
 	struct State {
-		CanvasShaderVulkan::CanvasFbos canvas_fbos;
+		CanvasShaderVulkan::CanvasUbos canvas_ubos;
 
 		Vector<VkBuffer> uniform_buffers;
 		Vector<VmaAllocation> allocation_uniforms;

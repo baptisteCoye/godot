@@ -130,13 +130,13 @@ void RasterizerCanvasVulkan::_update_uniform_buffer(uint32_t current_image) {
 	identity.set_identity();
 	for (size_t i = 0; i < 4; i++) {
 		for (size_t j = 0; j < 4; j++) {
-			state.canvas_fbos.canvas_item_data.projection_matrix[i * 4 + j] = identity.matrix[i][j];
+			state.canvas_ubos.canvas_item_data.projection_matrix[i * 4 + j] = identity.matrix[i][j];
 		}
 	}
 
 	for (size_t i = 0; i < 4; i++) {
 		for (size_t j = 0; j < 4; j++) {
-			state.canvas_fbos.canvas_item_data.modelview_matrix[i * 4 + j] = identity.matrix[i][j];
+			state.canvas_ubos.canvas_item_data.modelview_matrix[i * 4 + j] = identity.matrix[i][j];
 		}
 	}
 
@@ -147,20 +147,20 @@ void RasterizerCanvasVulkan::_update_uniform_buffer(uint32_t current_image) {
 	correction.matrix[2][3] = 1.f / 2.f;
 	for (size_t i = 0; i < 4; i++) {
 		for (size_t j = 0; j < 4; j++) {
-			state.canvas_fbos.canvas_item_data.projection_matrix[i * 4 + j] = correction.matrix[i][j];
+			state.canvas_ubos.canvas_item_data.projection_matrix[i * 4 + j] = correction.matrix[i][j];
 		}
 	}
 
 	void *mapped_data;
 	vmaMapMemory(*_get_instance_vulkan()->get_allocator(),
 			state.allocation_uniforms[current_image], &mapped_data);
-	memcpy(mapped_data, &state.canvas_fbos.canvas_item_data, sizeof(state.canvas_fbos.canvas_item_data));
+	memcpy(mapped_data, &state.canvas_ubos.canvas_item_data, sizeof(state.canvas_ubos.canvas_item_data));
 	vmaUnmapMemory(*_get_instance_vulkan()->get_allocator(), state.allocation_uniforms[current_image]);
 }
 
 
 void RasterizerCanvasVulkan::_create_uniform_buffers() {
-	VkDeviceSize buffer_size = sizeof(state.canvas_fbos.canvas_item_data);
+	VkDeviceSize buffer_size = sizeof(state.canvas_ubos.canvas_item_data);
 	state.uniform_buffers.resize(_get_instance_vulkan()->_get_swap_chain_images()->size());
 	state.allocation_uniforms.resize(_get_instance_vulkan()->_get_swap_chain_images()->size());
 

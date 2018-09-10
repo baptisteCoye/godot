@@ -254,11 +254,11 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
     fd.write("\t_FORCE_INLINE_ void set_uniform_buffer_object(UniformBufferObject binding, UBO &p_value) {  _set_uniform_buffer_object(binding, p_value); }\n\n")
     fd.write("\t_FORCE_INLINE_ void unset_uniform_buffer_object(UniformBufferObject binding) {  _unset_uniform_buffer_object(binding); }\n\n")
         
-    fd.write("\nstruct CanvasFbos {\n")
+    fd.write("\tstruct CanvasUbos {\n")
     if header_data.ubos:
        for x in header_data.ubos:
             offset = 0;
-            fd.write("\nstruct " + x[0] + " : public ShaderVulkan::UBO {\n")
+            fd.write("\t\tstruct " + x[0] + " : public ShaderVulkan::UBO {\n")
             i = 0
             for uniform in x[2]:
                 uniform_list = re.split(r'\s+', uniform.strip())
@@ -272,20 +272,20 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
                             array_count = get_datatype_c(uniform_type)[1]
                             if array_count > 1:
                                 array = "[" + str(array_count) + "]"
-                        fd.write("\t\t" + datatype_c + " " + uniform_name + array + ";\n")
+                        fd.write("\t\t\t" + datatype_c + " " + uniform_name + array + ";\n")
                         offset += get_datatype_alignment(uniform_type)
                         align = get_datatype_size(uniform_type) % get_datatype_alignment(uniform_type)
                         if align != 0:
                             padding = get_datatype_alignment(uniform_type) - align
                             pad = int(padding / 4)
-                            fd.write( "\t\tfloat align_" + str(i) + "[" + str(pad) + "];\n" )
+                            fd.write( "\t\t\tfloat align_" + str(i) + "[" + str(pad) + "];\n" )
                             i += 1
                     
             if offset % 16 != 0: #UBO sizes must be multiples of 16
                 align = offset % 16
                 padding = 16 - align
                 pad = int(padding / 4)
-                fd.write("\t\tfloat _pad[" + str(pad) + "];\n" )
+                fd.write("\t\t\tfloat _pad[" + str(pad) + "];\n" )
             ind = 0
             count = 0
             new_lst = []
@@ -295,9 +295,9 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
                     ind=index
             if ind<len(x[0]):
                 new_lst.append(x[0][ind:])
-            fd.write("\t} " + '_'.join(new_lst).lower() + ";\n")
-    fd.write("};\n\n")
-    fd.write("\tvirtual void init() {\n\n")
+            fd.write("\t\t} " + '_'.join(new_lst).lower() + ";\n\n")
+    fd.write("\t};\n\n")
+    fd.write("\t\tvirtual void init() {\n\n")
 
     enum_value_count = 0
 
