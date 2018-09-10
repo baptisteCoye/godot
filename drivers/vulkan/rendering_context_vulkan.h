@@ -45,7 +45,9 @@
 #elif defined(__linux__)
 #include "os_x11.h"
 #include "platform/x11/glad_vulkan_xlib.h"
-#include "thirdparty/vulkan_memory_allocator/vk_mem_alloc.h"
+#include "platform/x11/vma_usage.h"
+// #define VMA_IMPLEMENTATION
+// #include "thirdparty/vulkan_memory_allocator/vk_mem_alloc.h"
 #endif
 
 #include "thirdparty/shaderc/src/libshaderc/include/shaderc/shaderc.h"

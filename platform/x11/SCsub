@@ -14,6 +14,7 @@ common_x11 = [
     "key_mapping_x11.cpp",
     "joypad_linux.cpp",
     "power_x11.cpp",
+    "vma_usage.cpp",
     "glad_vulkan_xlib.cpp"
 ]
 

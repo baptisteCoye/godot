@@ -277,10 +277,10 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 	switch (p_video_driver) {
 #if defined(VULKAN_ENABLED)
 		case VIDEO_DRIVER_VULKAN:
-		//	RasterizerVulkan::make_current();
-
 			rendering_context = memnew(RenderingContextVulkan_X11(x11_display, x11_window, current_videomode));
 			rendering_context->initialize();
+			
+			RasterizerVulkan::make_current(rendering_context);
 			break;
 #endif
 #if defined(OPENGL_ENABLED)
@@ -289,7 +289,7 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 			rendering_context->initialize();
 
 			RasterizerGLES2::register_config();
-			RasterizerGLES2::make_current();
+			RasterizerGLES2::make_current(rendering_context);
 			break;
 
 		case VIDEO_DRIVER_GLES3:
@@ -298,7 +298,7 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 			rendering_context->initialize();
 
 			RasterizerGLES3::register_config();
-			RasterizerGLES3::make_current();
+			RasterizerGLES3::make_current(rendering_context);
 			break;
 #endif
 	}

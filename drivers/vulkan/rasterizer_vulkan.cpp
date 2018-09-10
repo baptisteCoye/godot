@@ -6,6 +6,7 @@
 #include "platform/windows/vma_usage.h"
 #elif defined(__linux__)
 #include "platform/x11/rendering_context_vulkan_x11.h"
+#include "platform/x11/vma_usage.h"
 #endif
 
 #include "shaders/canvas.glsl.gen.h"
