@@ -587,15 +587,13 @@ ShaderVulkan::Version *ShaderVulkan::get_current_version() {
 	return &v;
 }
 
-void ShaderVulkan::setup(const char **p_conditional_defines, int p_conditional_count, const char **p_uniform_names, int p_uniform_count, const AttributePair *p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const UBOPair *p_ubo_pairs, int p_ubo_pair_count, const Feedback *p_feedback, int p_feedback_count, const char *p_vertex_code, const char *p_fragment_code, int p_vertex_code_start, int p_fragment_code_start) {
+void ShaderVulkan::setup(const char **p_conditional_defines, int p_conditional_count, const AttributePair *p_attribute_pairs, int p_attribute_count, const TexUnitPair *p_texunit_pairs, int p_texunit_pair_count, const UBOPair *p_ubo_pairs, int p_ubo_pair_count, const Feedback *p_feedback, int p_feedback_count, const char *p_vertex_code, const char *p_fragment_code, int p_vertex_code_start, int p_fragment_code_start) {
 
 	ERR_FAIL_COND(version);
 	conditional_version.key = 0;
 	new_conditional_version.key = 0;
-	uniform_count = p_uniform_count;
 	conditional_count = p_conditional_count;
 	conditional_defines = p_conditional_defines;
-	uniform_names = p_uniform_names;
 	vertex_code = p_vertex_code;
 	fragment_code = p_fragment_code;
 	texunit_pairs = p_texunit_pairs;
