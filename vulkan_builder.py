@@ -1,9 +1,8 @@
 """Functions used to generate source files during build time
-
 All such functions are invoked in a subprocess on Windows to prevent build flakiness.
-
 """
 from platform_methods import subprocess_main
+import re
 
 
 class LegacyGLHeaderStruct:
@@ -34,7 +33,6 @@ class LegacyGLHeaderStruct:
 def include_file_in_legacygl_header(filename, header_data, depth):
     fs = open(filename, "r")
     line = fs.readline()
-
     while line:
 
         if line.find("[vertex]") != -1:
@@ -112,26 +110,7 @@ def include_file_in_legacygl_header(filename, header_data, depth):
                     header_data.texunit_names += [x]
 
         elif line.find("uniform") != -1 and line.lower().find("ubo:") != -1:
-            # uniform buffer object
-            ubostr = line[line.find(":") + 1:].strip()
-            ubo = str(int(ubostr))
-            uline = line[:line.lower().find("//")]
-            uline = uline[uline.find("uniform") + len("uniform"):]
-            uline = uline.replace("highp", "")
-            uline = uline.replace(";", "")
-            uline = uline.replace("{", "").strip()
-            lines = uline.split(",")
-            for x in lines:
-
-                x = x.strip()
-                x = x[x.rfind(" ") + 1:]
-                if x.find("[") != -1:
-                    # unfiorm array
-                    x = x[:x.find("[")]
-
-                if not x in header_data.ubo_names:
-                    header_data.ubos += [(x, ubo)]
-                    header_data.ubo_names += [x]
+            pass
 
         elif line.find("uniform") != -1 and line.find("{") == -1 and line.find(";") != -1:
             uline = line.replace("uniform", "")
@@ -188,6 +167,54 @@ def include_file_in_legacygl_header(filename, header_data, depth):
 
     fs.close()
 
+    fs = open(filename, "r")
+    line = fs.readline()
+
+    #Read the entire file to find the ends of UBO
+    while line:
+        if line.find("uniform") != -1 and line.lower().find("texunit:") != -1:
+            pass
+        elif line.find("uniform") != -1 and line.find("{") == -1 and line.find(";") != -1:
+            pass
+        elif line.find("uniform") != -1 and line.lower().find("ubo:") != -1:
+            # uniform buffer object
+            ubostr = line[line.find(":") + 1:].strip()
+            ubo = str(int(ubostr))
+            uline = line[:line.lower().find("//")]
+            uline = uline[uline.find("uniform") + len("uniform"):]
+            uline = uline.replace("highp", "")
+            uline = uline.replace(";", "")
+            uline = uline.replace("{", "").strip()
+            lines = uline.split(",")
+            for x in lines:
+                x = x.strip()
+                x = x[x.rfind(" ") + 1:]
+                if x.find("[") != -1:
+                    # uniform array
+                    x = x[:x.find("[")]
+                ubo_lines = []
+                ubo_line = fs.readline()
+                if not x in header_data.ubo_names:
+                    while ubo_line.find("}") == -1:                    
+                       ubo_line = ubo_line.split("//")[0]
+                       if ubo_line.startswith("//"):
+                           ubo_line = ""                    
+                       ubo_line = ubo_line.replace("highp", "")
+                       ubo_line = ubo_line.replace("mediump", "")
+                       ubo_line = ubo_line.replace(";", "")
+                       ubo_line = ubo_line.strip()
+                       if ubo_line != "":
+                           ubo_lines += [ubo_line]
+                       ubo_line = fs.readline()
+                    header_data.ubos += [(x, ubo, ubo_lines)]
+                    header_data.ubo_names += [x]
+
+        line = fs.readline()
+        header_data.line_offset += 1
+
+    fs.close()
+
+
     return header_data
 
 
@@ -206,8 +233,8 @@ def build_legacygl_header(filename, include, class_suffix, output_attribs, gles2
     out_file_base = out_file_base[out_file_base.rfind("/") + 1:]
     out_file_base = out_file_base[out_file_base.rfind("\\") + 1:]
     out_file_ifdef = out_file_base.replace(".", "_").upper()
-    fd.write("#ifndef " + out_file_ifdef + class_suffix + "_120\n")
-    fd.write("#define " + out_file_ifdef + class_suffix + "_120\n")
+    fd.write("#ifndef " + out_file_ifdef + class_suffix + "_450\n")
+    fd.write("#define " + out_file_ifdef + class_suffix + "_450\n")
 
     out_file_class = out_file_base.replace(".glsl.gen.h", "").title().replace("_", "").replace(".", "") + "Shader" + class_suffix
     fd.write("\n\n")
@@ -250,9 +277,7 @@ def build_legacygl_header(filename, include, class_suffix, output_attribs, gles2
     fd.write("\t_FORCE_INLINE_ void set_uniform(Uniforms p_uniform, float p_a, float p_b, float p_c, float p_d) { _FU glUniform4f(get_uniform(p_uniform),p_a,p_b,p_c,p_d); }\n\n")
 
     fd.write("""\t_FORCE_INLINE_ void set_uniform(Uniforms p_uniform, const Transform& p_transform) {  _FU
-
 		const Transform &tr = p_transform;
-
 		GLfloat matrix[16]={ /* build a 16x16 matrix */
 			tr.basis.elements[0][0],
 			tr.basis.elements[1][0],
@@ -271,19 +296,12 @@ def build_legacygl_header(filename, include, class_suffix, output_attribs, gles2
 			tr.origin.z,
 			1
 		};
-
-
                 glUniformMatrix4fv(get_uniform(p_uniform),1,false,matrix);
-
-
 	}
-
 	""")
 
     fd.write("""_FORCE_INLINE_ void set_uniform(Uniforms p_uniform, const Transform2D& p_transform) {  _FU
-
 		const Transform2D &tr = p_transform;
-
 		GLfloat matrix[16]={ /* build a 16x16 matrix */
 			tr.elements[0][0],
 			tr.elements[0][1],
@@ -302,26 +320,17 @@ def build_legacygl_header(filename, include, class_suffix, output_attribs, gles2
 			0,
 			1
 		};
-
-
         glUniformMatrix4fv(get_uniform(p_uniform),1,false,matrix);
-
-
 	}
-
 	""")
 
     fd.write("""_FORCE_INLINE_ void set_uniform(Uniforms p_uniform, const CameraMatrix& p_matrix) {  _FU
-
 		GLfloat matrix[16];
-
 		for (int i=0;i<4;i++) {
 			for (int j=0;j<4;j++) {
-
 				matrix[i*4+j]=p_matrix.matrix[i][j];
 			}
 		}
-
 		glUniformMatrix4fv(get_uniform(p_uniform),1,false,matrix);
 }""")
 
@@ -491,20 +500,135 @@ def build_legacygl_header(filename, include, class_suffix, output_attribs, gles2
         fd.write("\t};\n\n")
         fd.write("\tvoid set_enum_conditional(EnumConditionals p_cond) { _set_enum_conditional(p_cond); }\n")
 
+    fd.write("public:\n")
+    if not gles2 and header_data.ubos:
+        for x in header_data.ubos:
+            offset = 0;
+            fd.write("\tstruct " + x[0] + " {\n")
+            i = 0
+            for uniform in x[2]:
+                uniform_list = re.split(r'\s+', uniform.strip())
+                if len(uniform_list) > 1:                
+                    uniform_type = uniform_list[0]
+                    uniform_name = uniform_list[1]
+                    if get_datatype_c(uniform_type):
+                        datatype_c = get_datatype_c(uniform_type)[0]
+                        array = ""
+                        if get_datatype_c(uniform_type):
+                            array_count = get_datatype_c(uniform_type)[1]
+                            if array_count > 1:
+                                array = "[" + str(array_count) + "]"
+                        fd.write("\t\t" + datatype_c + " " + uniform_name + array + ";\n")
+                        offset += get_datatype_alignment(uniform_type)
+                        align = get_datatype_size(uniform_type) % get_datatype_alignment(uniform_type)
+                        if align != 0:
+                            padding = get_datatype_alignment(uniform_type) - align
+                            pad = int(padding / 4)
+                            fd.write( "\t\tfloat align_" + str(i) + "[" + str(pad) + "];\n" )
+                            i += 1
+                    
+            if offset % 16 != 0: #UBO sizes must be multiples of 16
+                align = offset % 16
+                padding = 16 - align
+                pad = int(padding / 4)
+                fd.write("\t\tfloat _pad[" + str(pad) + "];\n" )
+
+            fd.write("\t};\n\n")
+
     fd.write("};\n\n")
     fd.write("#endif\n\n")
     fd.close()
 
-
-def build_gles3_headers(target, source, env):
+def build_vulkan_headers(target, source, env):
     for x in source:
-        build_legacygl_header(str(x), include="drivers/gles3/shader_gles3.h", class_suffix="GLES3", output_attribs=True)
+        build_legacygl_header(str(x), include="drivers/vulkan/shader_vulkan.h", class_suffix="Vulkan", output_attribs=True)
 
+def get_datatype_c(p_type):
+	switcher = {
+		"void": ["void", 1],
+		"bool": ["bool", 1],
+		"bvec2": ["bool", 2],
+		"bvec3": ["bool", 3],
+		"bvec4": ["bool", 4],
+		"int": ["int32_t", 1],
+		"ivec2": ["int32_t", 2],
+		"ivec3": ["int32_t", 3],
+		"ivec4": ["int32_t", 4],
+		"uint": ["uint32_t", 1],
+		"uvec2": ["uint32_t", 2],
+		"uvec3": ["uint32_t", 3],
+		"uvec4": ["uiint32_t", 4],
+		"float": ["float", 1],
+		"vec2": ["float", 2],
+		"vec3": ["float", 3],
+		"vec4": ["float", 4],
+		"mat2": ["float", 4],
+		"mat3":	["float", 9],
+		"mat4": ["float", 16]
+	}
+	return switcher.get(p_type)
+    
+def get_datatype_size(p_type):
+	switcher = {
+		"void": 0,
+		"bool": 4,
+		"bvec2": 8,
+		"bvec3": 12,
+		"bvec4": 16,
+		"int": 4,
+		"ivec2": 8,
+		"ivec3": 12,
+		"ivec4": 16,
+		"uint": 4,
+		"uvec2": 8,
+		"uvec3": 12,
+		"uvec4": 16,
+		"float": 4,
+		"vec2": 8,
+		"vec3": 12,
+		"vec4": 16,
+		"mat2":
+			32, #4 * 4 + 4 * 4
+		"mat3":
+			48, #4 * 4 + 4 * 4 + 4 * 4
+		"mat4": 64,
+		"sampler2D": 16,
+		"isampler2D": 16,
+		"usampler2D": 16,
+		"samplerCube": 16
+	}
+	return switcher.get(p_type)
 
-def build_gles2_headers(target, source, env):
-    for x in source:
-        build_legacygl_header(str(x), include="drivers/gles2/shader_gles2.h", class_suffix="GLES2", output_attribs=True, gles2=True)
+def get_datatype_alignment(p_type):
+	switcher = {
+		"void": 0,
+		"bool": 4,
+		"bvec2": 8,
+		"bvec3": 16,
+		"bvec4": 16,
+		"int": 4,
+		"ivec2": 8,
+		"ivec3": 16,
+		"ivec4": 16,
+		"uint": 4,
+		"uvec2": 8,
+		"uvec3": 16,
+		"uvec4": 16,
+		"float": 4,
+		"vec2": 8,
+		"vec3": 16,
+		"vec4": 16,
+		"mat2": 16,
+		"mat3": 16,
+		"mat4": 16,
+		"sampler2D": 16,
+		"isampler2D": 16,
+		"usampler2D": 16,
+		"samplerCube": 16
+	}
 
+	return switcher.get(p_type)
 
 if __name__ == '__main__':
     subprocess_main(globals())
+
