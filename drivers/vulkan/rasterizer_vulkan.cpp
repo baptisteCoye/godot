@@ -698,7 +698,6 @@ void RasterizerVulkan::_create_graphics_pipeline() {
 	VkPipelineLayoutCreateInfo pipeline_layout_info = {};
 	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipeline_layout_info.setLayoutCount = 1;
-	pipeline_layout_info.setLayoutCount = 1;
 	pipeline_layout_info.pSetLayouts = &descriptor_set_layout;
 
 	if (vkCreatePipelineLayout(*get_instance_vulkan()->_get_device(), &pipeline_layout_info, NULL, &get_instance_vulkan()->_get_pipeline_layout()) != VK_SUCCESS) {
