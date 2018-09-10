@@ -45,9 +45,9 @@ layout(std140, binding = 1) uniform ColorTexpixel { //ubo:4
 layout(std140, binding = 2) uniform CanvasItemData { //ubo:5
 
 	highp mat4 projection_matrix;
-	highp float time;
 	highp mat4 modelview_matrix;
 	highp mat4 extra_matrix;
+	highp float time;
 };
 
 layout(location = 1) out highp vec2 uv_interp;
