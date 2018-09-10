@@ -13,7 +13,7 @@ layout(location = 7) in vec4 bone_weights; // attrib:7
 
 #ifdef USE_TEXTURE_RECT
 
-layout(binding = 3) uniform TextureRect { //ubo:3
+layout(std140, binding = 1) uniform TextureRect { //ubo:1
 	vec4 dst_rect;
 	vec4 src_rect;
 };
@@ -38,11 +38,11 @@ layout(location = 4) in highp vec2 uv_attrib;
 //skeleton
 #endif
 
-layout(std140, binding = 1) uniform ColorTexpixel { //ubo:4
+layout(std140, binding = 2) uniform ColorTexpixel { //ubo:2
 	highp vec2 color_texpixel_size;
 };
 
-layout(std140, binding = 2) uniform CanvasItemData { //ubo:5
+layout(std140, binding = 3) uniform CanvasItemData { //ubo:3
 
 	highp mat4 projection_matrix;
 	highp mat4 modelview_matrix;
@@ -61,7 +61,7 @@ layout(location = 3) out highp vec2 pixel_size_interp;
 #ifdef USE_SKELETON
 
 uniform mediump sampler2D skeleton_texture; //texunit:2
-layout(std140, binding = 3) uniform Skeleton { //ubo:6
+layout(std140, binding = 4) uniform Skeleton { //ubo:4
 	highp mat4 skeleton_transform;
 	highp mat4 skeleton_transform_inverse;
 };
@@ -69,7 +69,7 @@ layout(std140, binding = 3) uniform Skeleton { //ubo:6
 
 #ifdef USE_LIGHTING
 
-layout(std140, binding = 6) uniform LightData { //ubo:1
+layout(std140, binding = 5) uniform LightData { //ubo:5
 
 	//light matrices
 	highp mat4 light_matrix;
@@ -100,7 +100,7 @@ const bool at_light_pass = false;
 #endif
 
 #ifdef USE_PARTICLES
-layout(std140, binding = 7) uniform Particles { //ubo:7
+layout(std140, binding = 6) uniform Particles { //ubo:6
 	int h_frames;
 	int v_frames;
 };
@@ -109,7 +109,7 @@ layout(std140, binding = 7) uniform Particles { //ubo:7
 #if defined(USE_MATERIAL)
 
 // clang-format off
-layout(std140, binding = 8) uniform UniformData { //ubo:2
+layout(std140, binding = 7) uniform UniformData { //ubo:7
 MATERIAL_UNIFORMS
 	// clang-format on
 };
@@ -260,7 +260,7 @@ VERTEX_SHADER_CODE
 layout(binding = 9) uniform mediump sampler2D color_texture; // texunit:0
 layout(binding = 10) uniform mediump sampler2D normal_texture; // texunit:1
 
-layout(std140, binding = 11) uniform ColorTexpixel { //ubo:8
+layout(std140, binding = 11) uniform ColorTexpixel { //ubo:11
 
 	highp vec2 color_texpixel_size;
 };
@@ -276,12 +276,12 @@ layout(binding = 12) uniform sampler2D screen_texture; // texunit:-3
 
 #if defined(SCREEN_UV_USED)
 
-layout(binding = 13) uniform ScreenUV { //ubo:9
+layout(std140, binding = 13) uniform ScreenUV { //ubo:9
 	vec2 screen_pixel_size;
 };
 #endif
 
-layout(std140, binding = 14) uniform CanvasItemData { //ubo:10
+layout(std140, std140, binding = 14) uniform CanvasItemData { //ubo:10
 
 	highp mat4 projection_matrix;
 	highp float time;
@@ -291,7 +291,7 @@ layout(std140, binding = 14) uniform CanvasItemData { //ubo:10
 
 #ifdef USE_LIGHTING
 
-layout(std140, binding = 15) uniform LightData { //ubo:11
+layout(std140, binding = 15) uniform LightData { //ubo:15
 
 	highp mat4 light_matrix;
 	highp mat4 light_local_matrix;
@@ -326,7 +326,7 @@ const bool at_light_pass = true;
 const bool at_light_pass = false;
 #endif
 
-layout(binding = 18) uniform Modulate { //ubo:12
+layout(std140, binding = 18) uniform Modulate { //ubo:18
 	mediump vec4 final_modulate;
 };
 
@@ -335,7 +335,7 @@ layout(location = 0) out mediump vec4 frag_color;
 #if defined(USE_MATERIAL)
 
 // clang-format off
-layout(std140, binding = 19) uniform UniformData{ //ubo:13
+layout(std140, binding = 19) uniform UniformData{ //ubo:19
 MATERIAL_UNIFORMS
 	// clang-format on
 };
@@ -367,16 +367,17 @@ LIGHT_SHADER_CODE
 
 #ifdef USE_TEXTURE_RECT
 
-layout(binding = 20) uniform TextureRect { //ubo:14
+layout(std140, binding = 20) uniform TextureRect { //ubo:20
 	highp vec4 dst_rect;
 	highp vec4 src_rect;
 	bool clip_rect_uv;
 };
+
 #ifdef USE_NINEPATCH
 
 layout(location = 3) in highp vec2 pixel_size_interp;
 
-layout(binding = 21) uniform NinePatch { //ubo:15
+layout(std140, binding = 21) uniform NinePatch { //ubo:21
 	int np_repeat_v;
 	int np_repeat_h;
 	bool np_draw_center;
@@ -424,7 +425,7 @@ float map_ninepatch_axis(float pixel, float draw_size, float tex_pixel_size, flo
 #endif
 #endif
 
-layout(binding = 22) uniform Normal { //ubo:16
+layout(std140, binding = 22) uniform Normal { //ubo:22
 	bool use_default_normal;
 };
 
