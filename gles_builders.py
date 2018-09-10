@@ -523,13 +523,15 @@ def build_legacygl_header(filename, include, class_suffix, output_attribs, gles2
                         align = get_datatype_size(uniform_type) % get_datatype_alignment(uniform_type)
                         if align != 0:
                             padding = get_datatype_alignment(uniform_type) - align
-                            fd.write( "\t\tfloat align_" + str(i) + "[" + str(padding / 4) + "];\n" )
+                            pad = int(padding / 4)
+                            fd.write( "\t\tfloat align_" + str(i) + "[" + str(pad) + "];\n" )
                             i += 1
                     
             if offset % 16 != 0: #UBO sizes must be multiples of 16
                 align = offset % 16
                 padding = 16 - align
-                fd.write("\t\tfloat _pad[" + str(padding / 4) + "];\n" )
+                pad = int(padding / 4)
+                fd.write("\t\tfloat _pad[" + str(pad) + "];\n" )
 
             fd.write("\t};\n\n")
 
