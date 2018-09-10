@@ -225,6 +225,14 @@ protected:
 		ubos.insert(binding, p_value);
 	}
 
+	_FORCE_INLINE_ bool _is_uniform_bound(int32_t binding) {
+		return ubos.has(binding);
+	}
+
+	_FORCE_INLINE_ UBO _get_uniform_buffer_object(int32_t binding) {
+		return ubos.find(binding)->get();
+	}
+
 	_FORCE_INLINE_ void _unset_uniform_buffer_object(int32_t binding) {
 		ubos.erase(binding);
 	}

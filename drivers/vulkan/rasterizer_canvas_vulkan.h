@@ -21,7 +21,7 @@ public:
 	RenderingContextVulkan *_get_instance_vulkan();
 	Vector<VkDescriptorSet> *_get_descriptor_sets();
 
-	void _update_uniform_buffer(uint32_t current_image);
+	void _update_uniform_buffers();
 	void _create_uniform_buffers();
 	void _create_buffer_host_cpu_to_gpu(VmaAllocator allocator, VkDeviceSize size, VkBufferUsageFlags usage, VkBuffer &buffer, VmaAllocation &allocation);
 

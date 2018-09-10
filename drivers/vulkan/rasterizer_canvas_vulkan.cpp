@@ -46,7 +46,7 @@ void RasterizerCanvasVulkan::draw_window_margins(int *black_margin, RID *black_i
 	int window_h = window_size.height;
 	int window_w = window_size.width;
 
-    RasterizerStorageVulkan::RenderTarget *rt = memnew(RasterizerStorageVulkan::RenderTarget);
+	RasterizerStorageVulkan::RenderTarget *rt = memnew(RasterizerStorageVulkan::RenderTarget);
 	storage->render_target_owner.make_rid(rt);
 	canvas_begin();
 
@@ -116,48 +116,61 @@ Vector<VkDescriptorSet> *RasterizerCanvasVulkan::_get_descriptor_sets() {
 	return &descriptor_sets;
 }
 
+void RasterizerCanvasVulkan::_update_uniform_buffers() {
+	////state.ubo_data.model_matrix.set_identity();
+	////state.ubo_data.view_matrix = look_at(Vector3(2.f, 2.f, 2.f), Vector3(0.f, 0.f, 0.f), Vector3(0.f, 0.f, 1.f));
+	////state.ubo_data.projection_matrix.set_perspective(
+	////		45.f,
+	////		get_instance_vulkan()->get_swap_chain_extent().width / (float)get_instance_vulkan()->get_swap_chain_extent().height,
+	////		0.1f,
+	////		10.f,
+	////		false);
+	//CameraMatrix identity;
+	//identity.set_identity();
+	//for (size_t i = 0; i < 4; i++) {
+	//	for (size_t j = 0; j < 4; j++) {
+	//		state.canvas_ubos.canvas_item_data.projection_matrix[i * 4 + j] = identity.matrix[i][j];
+	//	}
+	//}
 
-void RasterizerCanvasVulkan::_update_uniform_buffer(uint32_t current_image) {
-	//state.ubo_data.model_matrix.set_identity();
-	//state.ubo_data.view_matrix = look_at(Vector3(2.f, 2.f, 2.f), Vector3(0.f, 0.f, 0.f), Vector3(0.f, 0.f, 1.f));
-	//state.ubo_data.projection_matrix.set_perspective(
-	//		45.f,
-	//		get_instance_vulkan()->get_swap_chain_extent().width / (float)get_instance_vulkan()->get_swap_chain_extent().height,
-	//		0.1f,
-	//		10.f,
-	//		false);
-	CameraMatrix identity;
-	identity.set_identity();
-	for (size_t i = 0; i < 4; i++) {
-		for (size_t j = 0; j < 4; j++) {
-			state.canvas_ubos.canvas_item_data.projection_matrix[i * 4 + j] = identity.matrix[i][j];
+	//for (size_t i = 0; i < 4; i++) {
+	//	for (size_t j = 0; j < 4; j++) {
+	//		state.canvas_ubos.canvas_item_data.modelview_matrix[i * 4 + j] = identity.matrix[i][j];
+	//	}
+	//}
+
+	//CameraMatrix correction;
+	//correction.set_identity();
+	//correction.matrix[1][1] = -1;
+	//correction.matrix[2][2] = 1.f / 2.f;
+	//correction.matrix[2][3] = 1.f / 2.f;
+	//for (size_t i = 0; i < 4; i++) {
+	//	for (size_t j = 0; j < 4; j++) {
+	//		state.canvas_ubos.canvas_item_data.projection_matrix[i * 4 + j] = correction.matrix[i][j];
+	//	}
+	//}
+
+	//@TODO LRU
+	for (size_t i = 0; i < state.allocation_uniforms.size(); i++) {
+		vmaUnmapMemory(*_get_instance_vulkan()->get_allocator(), state.allocation_uniforms[i]);
+	}
+	state.allocation_uniforms.clear();
+
+	for (size_t i = 0; i < CanvasShaderVulkan::MAX_UNIFORM_BUFFER_OBJECTS; i++) {
+		if (!state.canvas_shader.is_uniform_bound(CanvasShaderVulkan::UniformBufferObject(i))) {
+			continue;
 		}
+		VmaAllocation allocation;
+		void *mapped_data;
+		vmaMapMemory(*_get_instance_vulkan()->get_allocator(),
+				allocation, &mapped_data);
+		memcpy(mapped_data, &state.canvas_shader.get_uniform_buffer_object(CanvasShaderVulkan::UniformBufferObject(i)), sizeof(
+																																		 state.canvas_shader.get_uniform_buffer_object(CanvasShaderVulkan::UniformBufferObject(i))));
+		state.allocation_uniforms.push_back(allocation);
 	}
 
-	for (size_t i = 0; i < 4; i++) {
-		for (size_t j = 0; j < 4; j++) {
-			state.canvas_ubos.canvas_item_data.modelview_matrix[i * 4 + j] = identity.matrix[i][j];
-		}
-	}
-
-	CameraMatrix correction;
-	correction.set_identity();
-	correction.matrix[1][1] = -1;
-	correction.matrix[2][2] = 1.f / 2.f;
-	correction.matrix[2][3] = 1.f / 2.f;
-	for (size_t i = 0; i < 4; i++) {
-		for (size_t j = 0; j < 4; j++) {
-			state.canvas_ubos.canvas_item_data.projection_matrix[i * 4 + j] = correction.matrix[i][j];
-		}
-	}
-
-	void *mapped_data;
-	vmaMapMemory(*_get_instance_vulkan()->get_allocator(),
-			state.allocation_uniforms[current_image], &mapped_data);
-	memcpy(mapped_data, &state.canvas_ubos.canvas_item_data, sizeof(state.canvas_ubos.canvas_item_data));
-	vmaUnmapMemory(*_get_instance_vulkan()->get_allocator(), state.allocation_uniforms[current_image]);
+	//}
 }
-
 
 void RasterizerCanvasVulkan::_create_uniform_buffers() {
 	VkDeviceSize buffer_size = sizeof(state.canvas_ubos.canvas_item_data);
@@ -168,7 +181,6 @@ void RasterizerCanvasVulkan::_create_uniform_buffers() {
 		_create_buffer_host_cpu_to_gpu(*_get_instance_vulkan()->get_allocator(), buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, state.uniform_buffers.write[i], state.allocation_uniforms.write[i]);
 	}
 }
-
 
 void RasterizerCanvasVulkan::_create_buffer_host_cpu_to_gpu(VmaAllocator allocator, VkDeviceSize size, VkBufferUsageFlags usage, VkBuffer &buffer, VmaAllocation &allocation) {
 	VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };

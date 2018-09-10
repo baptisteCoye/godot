@@ -230,7 +230,8 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
     if header_data.conditionals:
         fd.write("\tenum Conditionals {\n")
         for x in header_data.conditionals:
-            fd.write("\t\t" + x.upper() + ",\n")
+            fd.write("\t\t" + x.upper() + ",\n")            
+        fd.write("\t\t MAX_CONDITIONALS \n")
         fd.write("\t};\n\n")
 
     if header_data.conditionals:
@@ -249,11 +250,13 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
             if ind<len(x[0]):
                 new_lst.append(x[0][ind:])
             fd.write("\t\t" + '_'.join(new_lst).upper() + ",\n")
+        fd.write("\t\t MAX_UNIFORM_BUFFER_OBJECTS \n")
         fd.write("\t};\n\n")
     
-    fd.write("\t_FORCE_INLINE_ void set_uniform_buffer_object(UniformBufferObject binding, UBO &p_value) {  _set_uniform_buffer_object(binding, p_value); }\n\n")
-    fd.write("\t_FORCE_INLINE_ void unset_uniform_buffer_object(UniformBufferObject binding) {  _unset_uniform_buffer_object(binding); }\n\n")
-        
+    fd.write("\t_FORCE_INLINE_ void set_uniform_buffer_object(UniformBufferObject binding, UBO &p_value) { _set_uniform_buffer_object(binding, p_value); }\n\n")
+    fd.write("\t_FORCE_INLINE_ void unset_uniform_buffer_object(UniformBufferObject binding) { _unset_uniform_buffer_object(binding); }\n\n")
+    fd.write("\t_FORCE_INLINE_ bool is_uniform_bound(UniformBufferObject binding) { return _is_uniform_bound(binding); }\n\n")
+    fd.write("\t_FORCE_INLINE_ UBO get_uniform_buffer_object(UniformBufferObject binding) { return _get_uniform_buffer_object(binding); }\n\n")
     fd.write("\tstruct CanvasUbos {\n")
     if header_data.ubos:
        for x in header_data.ubos:

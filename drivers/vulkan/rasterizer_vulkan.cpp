@@ -287,7 +287,7 @@ void RasterizerVulkan::initialize() {
 	scene->initialize();
 	_create_command_pool();
 	_create_descriptor_pool();
-	//_create_descriptor_set_layout();
+	_create_descriptor_set_layout();
 
 	_create_sync_objects();
 	//_create_descriptor_sets();
@@ -347,7 +347,7 @@ void RasterizerVulkan::set_current_render_target(RID p_render_target) {
 		ERR_FAIL_COND(!rt);
 		storage->frame.clear_request = false;
 
-		canvas->_update_uniform_buffer(storage->frame.image_index);
+		canvas->_update_uniform_buffers();
 
 		VkCommandBufferAllocateInfo alloc_info = {};
 		alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
