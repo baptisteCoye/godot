@@ -48,8 +48,7 @@ private:
 	VkRenderPassBeginInfo &_create_render_pass_info(size_t i);
 	void _create_primary_command_buffers();
 	void _create_sync_objects();
-	void _create_index_buffer(Vector<uint16_t> p_indices, VkBuffer &p_index_buffer);
-	void _create_vertex_buffer(Vector<RasterizerStorageVulkan::Vertex> p_vertices, VkBuffer &p_vertex_buffer);
+
 	void _create_descriptor_pool();
 	void _create_descriptor_sets();
 	void _create_render_pass_end();

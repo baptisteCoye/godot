@@ -22,37 +22,6 @@ MakeCurrentFunctVulkan::MakeCurrentFunctVulkan(RenderingContext *p_context) {
 MakeCurrentFunctVulkan::~MakeCurrentFunctVulkan() {
 }
 
-void RasterizerVulkan::_create_index_buffer(Vector<uint16_t> p_indices, VkBuffer &p_index_buffer) {
-	VkDeviceSize buffer_size = sizeof(p_indices[0]) * p_indices.size();
-
-	VkBuffer staging_buffer;
-	VmaAllocationInfo staging_alloc_info;
-	VmaAllocation allocation_staging;
-	storage->_create_buffer_staging(*get_instance_vulkan()->get_allocator(), buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, staging_buffer, allocation_staging, staging_alloc_info);
-
-	memcpy(staging_alloc_info.pMappedData, p_indices.ptr(), (size_t)buffer_size);
-	storage->_create_buffer(*get_instance_vulkan()->get_allocator(), buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, p_index_buffer, storage->data.allocation_index);
-	storage->_copy_buffer(staging_buffer, p_index_buffer, buffer_size);
-
-	vmaDestroyBuffer(*get_instance_vulkan()->get_allocator(), staging_buffer, allocation_staging);
-}
-
-void RasterizerVulkan::_create_vertex_buffer(Vector<RasterizerStorageVulkan::Vertex> p_vertices, VkBuffer &vertex_buffer) {
-	VkDeviceSize buffer_size = sizeof(p_vertices[0]) * p_vertices.size();
-	VkBuffer staging_buffer;
-	VmaAllocation allocation_staging;
-	VmaAllocationInfo staging_alloc_info;
-	storage->_create_buffer_staging(*get_instance_vulkan()->get_allocator(), buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, staging_buffer, allocation_staging, staging_alloc_info);
-
-	memcpy(staging_alloc_info.pMappedData, p_vertices.ptr(), (size_t)buffer_size);
-
-	storage->_create_buffer(*get_instance_vulkan()->get_allocator(), buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertex_buffer, storage->data.allocation_vertex);
-
-	storage->_copy_buffer(staging_buffer, vertex_buffer, buffer_size);
-
-	vmaDestroyBuffer(*get_instance_vulkan()->get_allocator(), staging_buffer, allocation_staging);
-}
-
 void RasterizerVulkan::_create_descriptor_pool() {
 	Vector<VkDescriptorPoolSize> pool_sizes;
 	VkDescriptorPoolSize uniform_pool;
@@ -189,12 +158,12 @@ void RasterizerVulkan::set_boot_image(const Ref<Image> &p_image, const Color &p_
 	//storage->texture_set_data(texture, p_image);
 	//_create_descriptor_set_layout();
 	//_create_descriptor_sets();
-	
+	//
 	//_create_graphics_pipeline();
-	//canvas->_update_uniform_buffer(storage->frame.image_index);
+	//canvas->_update_uniform_buffers();
 
-	//_create_index_buffer(storage->data.indices, storage->data.index_buffer);
-	//_create_vertex_buffer(storage->data.vertices, storage->data.vertex_buffer);
+	//storage->_create_index_buffer(storage->data.indices, storage->data.index_buffer);
+	//storage->_create_vertex_buffer(storage->data.vertices, storage->data.vertex_buffer);
 
 	//canvas->draw_generic_textured_rect(screenrect, Rect2(0, 0, 1, 1));
 	//_update_descriptors();

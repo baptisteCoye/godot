@@ -1,10 +1,8 @@
 #include "rasterizer_storage_vulkan.h"
 
-
 RenderingContextVulkan *RasterizerStorageVulkan::_get_instance_vulkan() {
 	return dynamic_cast<RenderingContextVulkan *>(context);
 }
-
 
 void RasterizerStorageVulkan::_render_target_clear(RenderTarget *rt) {
 	if (rt->command_buffer) {
@@ -170,6 +168,36 @@ void RasterizerStorageVulkan::_copy_buffer(VkBuffer src_buffer, VkBuffer dst_buf
 	_end_single_time_commands(command_buffer);
 }
 
+void RasterizerStorageVulkan::_create_vertex_buffer(Vector<Vertex> p_vertices, VkBuffer &vertex_buffer) {
+	VkDeviceSize buffer_size = sizeof(p_vertices[0]) * p_vertices.size();
+	VkBuffer staging_buffer;
+	VmaAllocation allocation_staging;
+	VmaAllocationInfo staging_alloc_info;
+	_create_buffer_staging(*_get_instance_vulkan()->get_allocator(), buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, staging_buffer, allocation_staging, staging_alloc_info);
+
+	memcpy(staging_alloc_info.pMappedData, p_vertices.ptr(), (size_t)buffer_size);
+
+	_create_buffer(*_get_instance_vulkan()->get_allocator(), buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertex_buffer, data.allocation_vertex);
+
+	_copy_buffer(staging_buffer, vertex_buffer, buffer_size);
+
+	vmaDestroyBuffer(*_get_instance_vulkan()->get_allocator(), staging_buffer, allocation_staging);
+}
+
+void RasterizerStorageVulkan::_create_index_buffer(Vector<uint16_t> p_indices, VkBuffer &p_index_buffer) {
+	VkDeviceSize buffer_size = sizeof(p_indices[0]) * p_indices.size();
+
+	VkBuffer staging_buffer;
+	VmaAllocationInfo staging_alloc_info;
+	VmaAllocation allocation_staging;
+	_create_buffer_staging(*_get_instance_vulkan()->get_allocator(), buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, staging_buffer, allocation_staging, staging_alloc_info);
+
+	memcpy(staging_alloc_info.pMappedData, p_indices.ptr(), (size_t)buffer_size);
+	_create_buffer(*_get_instance_vulkan()->get_allocator(), buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, p_index_buffer, data.allocation_index);
+	_copy_buffer(staging_buffer, p_index_buffer, buffer_size);
+
+	vmaDestroyBuffer(*_get_instance_vulkan()->get_allocator(), staging_buffer, allocation_staging);
+}
 
 RID RasterizerStorageVulkan::texture_create() {
 	VulkanTexture *texture = memnew(VulkanTexture);
@@ -306,7 +334,6 @@ void RasterizerStorageVulkan::_convert_formats(const Ref<Image> &p_image, VkForm
 		format = VK_FORMAT_R8G8B8A8_UNORM;
 	}
 }
-
 
 void RasterizerStorageVulkan::texture_set_data_partial(RID p_texture, const Ref<Image> &p_image, int src_x, int src_y, int src_w, int src_h, int dst_x, int dst_y, int p_dst_mip, int p_level) {
 	VulkanTexture *t = texture_owner.get(p_texture);
@@ -1289,7 +1316,6 @@ RasterizerStorageVulkan::LightmapCapture::LightmapCapture() {
 	energy = 1.0;
 	cell_subdiv = 1;
 }
-
 
 _FORCE_INLINE_ void RasterizerStorageVulkan::Instantiable::instance_change_notify() {
 	SelfList<RasterizerScene::InstanceBase> *instances = instance_list.first();

@@ -5,8 +5,8 @@
 #include "platform/windows/rendering_context_vulkan_win.h"
 #include "platform/windows/vma_windows.h"
 #elif defined(__linux__)
-#include "platform/x11/rendering_context_vulkan_x11.h"
 #include "platform/x11/glad_vulkan_xlib.h"
+#include "platform/x11/rendering_context_vulkan_x11.h"
 #endif
 #include "servers/visual/rasterizer.h"
 
@@ -14,7 +14,7 @@ class RasterizerStorageVulkan : public RasterizerStorage {
 private:
 	RenderingContext *context;
 	RenderingContextVulkan *_get_instance_vulkan();
-	
+
 public:
 	struct Vertex {
 		Vector2 pos;
@@ -223,6 +223,8 @@ public:
 	void _create_buffer_staging(VmaAllocator allocator, VkDeviceSize size, VkBufferUsageFlags usage, VkBuffer &buffer, VmaAllocation &allocation, VmaAllocationInfo &alloc_info);
 	void _copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 	void _copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
+	void _create_vertex_buffer(Vector<RasterizerStorageVulkan::Vertex> p_vertices, VkBuffer &vertex_buffer);
+	void _create_index_buffer(Vector<uint16_t> p_indices, VkBuffer &p_index_buffer);
 
 public:
 	mutable RID_Owner<VulkanTexture> texture_owner;
@@ -256,7 +258,6 @@ public:
 
 	void texture_set_path(RID p_texture, const String &p_path);
 	String texture_get_path(RID p_texture) const;
-
 
 	void texture_set_shrink_all_x2_on_set_data(bool p_enable);
 
