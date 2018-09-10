@@ -111,21 +111,6 @@ def include_file_in_legacygl_header(filename, header_data, depth):
         elif line.find("uniform") != -1 and line.lower().find("ubo:") != -1:
             pass
 
-        elif line.find("uniform") != -1 and line.find("{") == -1 and line.find(";") != -1:
-            uline = line.replace("uniform", "")
-            uline = uline.replace(";", "")
-            lines = uline.split(",")
-            for x in lines:
-
-                x = x.strip()
-                x = x[x.rfind(" ") + 1:]
-                if x.find("[") != -1:
-                    # unfiorm array
-                    x = x[:x.find("[")]
-
-                if not x in header_data.uniforms:
-                    header_data.uniforms += [x]
-
         if line.strip().find("attribute ") == 0 and line.find("attrib:") != -1:
             uline = line.replace("in ", "")
             uline = uline.replace("attribute ", "")
@@ -246,12 +231,6 @@ def build_vulkan_header(filename, include, class_suffix, output_attribs):
     if header_data.conditionals:
         fd.write("\tenum Conditionals {\n")
         for x in header_data.conditionals:
-            fd.write("\t\t" + x.upper() + ",\n")
-        fd.write("\t};\n\n")
-
-    if header_data.uniforms:
-        fd.write("\tenum Uniforms {\n")
-        for x in header_data.uniforms:
             fd.write("\t\t" + x.upper() + ",\n")
         fd.write("\t};\n\n")
 
