@@ -73,7 +73,6 @@ public:
 	virtual void finalize();
 
 	static Error is_viable();
-	static void make_current();
 	static void register_config();
 	static void make_current(RenderingContext *context);
 
