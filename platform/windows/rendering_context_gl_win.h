@@ -37,8 +37,6 @@
 
 #include "core/error_list.h"
 #include "core/os/os.h"
-#include "drivers/gl_context/context_gl.h"
-#include "servers/visual/rendering_context.h"
 #include "servers/visual/rendering_context.h"
 
 #include <windows.h>

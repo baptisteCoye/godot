@@ -37,7 +37,7 @@
 #include "core/ustring.h"
 #include "core/vector.h"
 #include "servers/visual/rendering_context.h"
-#include "typedefs.h"
+#include "core/typedefs.h"
 
 #ifdef _WIN32
 #include "platform/windows/os_windows.h"

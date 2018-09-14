@@ -49,7 +49,7 @@
 #include "main/main.h"
 #include "platform/windows/rendering_context_gl_win.h"
 #include "platform/windows/rendering_context_vulkan_win.h"
-#include "project_settings.h"
+#include "core/project_settings.h"
 #include "servers/audio_server.h"
 #include "servers/visual/visual_server_raster.h"
 #include "servers/visual/visual_server_wrap_mt.h"

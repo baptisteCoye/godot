@@ -37,7 +37,7 @@
 #define VkMemoryRequirements2KHR VkMemoryRequirements2
 #define VkImageMemoryRequirementsInfo2KHR VkImageMemoryRequirementsInfo2
 
-#include "reference.h"
+#include "core/reference.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN

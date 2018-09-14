@@ -168,6 +168,10 @@ void RasterizerStorageVulkan::_copy_buffer(VkBuffer src_buffer, VkBuffer dst_buf
 	_end_single_time_commands(command_buffer);
 }
 
+Variant RasterizerStorageVulkan::material_get_param_default(RID p_material, const StringName &p_param) const {
+	return Variant();
+}
+
 void RasterizerStorageVulkan::_create_vertex_buffer(Vector<Vertex> p_vertices, VkBuffer &vertex_buffer) {
 	VkDeviceSize buffer_size = sizeof(p_vertices[0]) * p_vertices.size();
 	VkBuffer staging_buffer;

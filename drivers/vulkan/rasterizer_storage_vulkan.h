@@ -300,6 +300,7 @@ public:
 
 	void material_set_param(RID p_material, const StringName &p_param, const Variant &p_value);
 	Variant material_get_param(RID p_material, const StringName &p_param) const;
+	Variant material_get_param_default(RID p_material, const StringName &p_param) const;
 
 	void material_set_line_width(RID p_material, float p_width);
 

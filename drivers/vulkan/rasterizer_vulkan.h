@@ -2,7 +2,7 @@
 #define RASTERIZER_VULKAN_H
 
 #include "core/project_settings.h"
-#include "os/os.h"
+#include "core/os/os.h"
 
 #ifdef _WIN32
 #include "platform/windows/rendering_context_vulkan_win.h"

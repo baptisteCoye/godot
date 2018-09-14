@@ -30,9 +30,9 @@
 
 #include "rasterizer_gles3.h"
 
-#include "gl_context/context_gl.h"
-#include "os/os.h"
-#include "project_settings.h"
+#include "servers/visual/rendering_context.h"
+#include "core/os/os.h"
+#include "core/project_settings.h"
 
 #include <string.h>
 

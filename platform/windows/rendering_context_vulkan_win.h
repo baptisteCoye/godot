@@ -32,7 +32,7 @@
 #define RENDERING_CONTEXT_VULKAN_WIN_H
 
 //#if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
-#include "typedefs.h"
+#include "core/typedefs.h"
 
 #include "drivers/vulkan/rendering_context_vulkan.h"
 #include "thirdparty/glad2/include/glad/vulkan.h"

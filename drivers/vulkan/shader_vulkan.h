@@ -40,10 +40,10 @@
 #include GLES3_INCLUDE_H
 #endif
 
-#include "camera_matrix.h"
-#include "hash_map.h"
-#include "map.h"
-#include "variant.h"
+#include "core/math/camera_matrix.h"
+#include "core/hash_map.h"
+#include "core/map.h"
+#include "core/variant.h"
 #ifdef _WIN32
 #include "platform/windows/glad_vulkan_win.h"
 #elif defined(__linux__)

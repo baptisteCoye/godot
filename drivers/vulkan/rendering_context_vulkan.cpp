@@ -29,7 +29,7 @@
 /*************************************************************************/
 
 #include "rendering_context_vulkan.h"
-#include "os/os.h"
+#include "core/os/os.h"
 #ifdef _WIN32
 	#include "os_windows.h"
 	#include <Windows.h>
@@ -39,9 +39,9 @@
 	#include "platform/x11/glad_vulkan_xlib.h"
 #endif
 
-#include "project_settings.h"
+#include "core/project_settings.h"
 #include "thirdparty/shaderc/src/libshaderc/include/shaderc/shaderc.h"
-#include "version_generated.gen.h"
+#include "core/version_generated.gen.h"
 
 #if defined(OPENGL_ENABLED) || defined(GLES_ENABLED)
 

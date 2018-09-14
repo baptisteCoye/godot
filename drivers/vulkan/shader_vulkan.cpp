@@ -30,13 +30,13 @@
 
 #include "shader_vulkan.h"
 
-#include "print_string.h"
+#include "core/print_string.h"
 
 #include "shaders/canvas.glsl.gen.h"
 #include "thirdparty/shaderc/src/libshaderc/include/shaderc/shaderc.h"
 #include "thirdparty/spirv-cross/spirv_cfg.hpp"
 #include "thirdparty/spirv-cross/spirv_cross.hpp"
-#include "ustring.h"
+#include "core/ustring.h"
 
 #define GLES_OVER_GL
 
