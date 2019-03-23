@@ -806,7 +806,6 @@ ScriptCreateDialog::ScriptCreateDialog() {
 	parent_search_button->connect("pressed", this, "_browse_class_in_tree");
 	hb->add_child(parent_search_button);
 	parent_browse_button = memnew(Button);
-	parent_browse_button->set_flat(true);
 	parent_browse_button->connect("pressed", this, "_browse_path", varray(true, false));
 	hb->add_child(parent_browse_button);
 	gc->add_child(memnew(Label(TTR("Inherits:"))));
@@ -847,7 +846,6 @@ ScriptCreateDialog::ScriptCreateDialog() {
 	file_path->set_h_size_flags(SIZE_EXPAND_FILL);
 	hb->add_child(file_path);
 	path_button = memnew(Button);
-	path_button->set_flat(true);
 	path_button->connect("pressed", this, "_browse_path", varray(false, true));
 	hb->add_child(path_button);
 	gc->add_child(memnew(Label(TTR("Path:"))));

@@ -281,10 +281,20 @@ void PopupMenu::_gui_input(const Ref<InputEvent> &p_event) {
 
 	if (b.is_valid()) {
 
-		if (b->is_pressed())
-			return;
-
 		int button_idx = b->get_button_index();
+
+		if (b->is_pressed()) {
+			if (button_idx == BUTTON_LEFT) {
+				is_mouse_down = true;
+				// Update to display the "pressed" stylebox
+				update();
+			}
+
+			return;
+		} else {
+			is_mouse_down = false;
+		}
+
 		switch (button_idx) {
 
 			case BUTTON_WHEEL_DOWN: {
@@ -460,6 +470,7 @@ void PopupMenu::_notification(int p_what) {
 
 			Ref<StyleBox> style = get_stylebox("panel");
 			Ref<StyleBox> hover = get_stylebox("hover");
+			Ref<StyleBox> pressed = get_stylebox("pressed");
 			Ref<Font> font = get_font("font");
 			// In Item::checkable_type enum order (less the non-checkable member)
 			Ref<Texture> check[] = { get_icon("checked"), get_icon("radio_checked") };
@@ -477,6 +488,7 @@ void PopupMenu::_notification(int p_what) {
 			Color font_color_disabled = get_color("font_color_disabled");
 			Color font_color_accel = get_color("font_color_accel");
 			Color font_color_hover = get_color("font_color_hover");
+			Color font_color_pressed = get_color("font_color_pressed");
 			float font_h = font->get_height();
 
 			// Add the check and the wider icon to the offset of all items.
@@ -516,7 +528,8 @@ void PopupMenu::_notification(int p_what) {
 
 				if (i == mouse_over) {
 
-					hover->draw(ci, Rect2(item_ofs + Point2(-hseparation, -vseparation / 2), Size2(get_size().width - style->get_minimum_size().width + hseparation * 2, h + vseparation)));
+					Ref<StyleBox> hover_pressed = is_mouse_down ? pressed : hover;
+					hover_pressed->draw(ci, Rect2(item_ofs + Point2(-hseparation, -vseparation / 2), Size2(get_size().width - style->get_minimum_size().width + hseparation * 2, h + vseparation)));
 				}
 
 				String text = items[i].xl_text;
@@ -565,8 +578,17 @@ void PopupMenu::_notification(int p_what) {
 					}
 				} else {
 
+					Color item_font_color;
+					if (is_mouse_down && i == mouse_over) {
+						item_font_color = font_color_pressed;
+					} else if (i == mouse_over) {
+						item_font_color = font_color_hover;
+					} else {
+						item_font_color = font_color;
+					}
+
 					item_ofs.x += icon_ofs + check_ofs;
-					font->draw(ci, item_ofs + Point2(0, Math::floor((h - font_h) / 2.0)), text, items[i].disabled ? font_color_disabled : (i == mouse_over ? font_color_hover : font_color));
+					font->draw(ci, item_ofs + Point2(0, Math::floor((h - font_h) / 2.0)), text, items[i].disabled ? font_color_disabled : item_font_color);
 				}
 
 				if (items[i].accel || (items[i].shortcut.is_valid() && items[i].shortcut->is_valid())) {

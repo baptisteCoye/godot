@@ -835,8 +835,6 @@ ColorPicker::ColorPicker() :
 #endif
 		text_type->connect("pressed", this, "_text_type_toggled");
 	} else {
-
-		text_type->set_flat(true);
 		text_type->set_mouse_filter(MOUSE_FILTER_IGNORE);
 	}
 

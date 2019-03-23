@@ -535,7 +535,6 @@ InspectorDock::InspectorDock(EditorNode *p_editor, EditorData &p_editor_data) {
 	backward_button = memnew(ToolButton);
 	general_options_hb->add_child(backward_button);
 	backward_button->set_icon(get_icon("Back", "EditorIcons"));
-	backward_button->set_flat(true);
 	backward_button->set_tooltip(TTR("Go to the previous edited object in history."));
 	backward_button->set_disabled(true);
 	backward_button->connect("pressed", this, "_edit_back");
@@ -543,7 +542,6 @@ InspectorDock::InspectorDock(EditorNode *p_editor, EditorData &p_editor_data) {
 	forward_button = memnew(ToolButton);
 	general_options_hb->add_child(forward_button);
 	forward_button->set_icon(get_icon("Forward", "EditorIcons"));
-	forward_button->set_flat(true);
 	forward_button->set_tooltip(TTR("Go to the next edited object in history."));
 	forward_button->set_disabled(true);
 	forward_button->connect("pressed", this, "_edit_forward");

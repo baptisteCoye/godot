@@ -259,7 +259,6 @@ void EditorAssetLibraryItemDescription::add_preview(int p_id, bool p_video, cons
 	preview.video_link = p_url;
 	preview.is_video = p_video;
 	preview.button = memnew(Button);
-	preview.button->set_flat(true);
 	preview.button->set_icon(get_icon("ThumbnailWait", "EditorIcons"));
 	preview.button->set_toggle_mode(true);
 	preview.button->connect("pressed", this, "_preview_click", varray(p_id));

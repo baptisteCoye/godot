@@ -507,7 +507,6 @@ EditorPropertyArray::EditorPropertyArray() {
 	page_idx = 0;
 	page_len = 10;
 	edit = memnew(Button);
-	edit->set_flat(true);
 	edit->set_h_size_flags(SIZE_EXPAND_FILL);
 	edit->set_clip_text(true);
 	edit->connect("pressed", this, "_edit_pressed");
@@ -1003,7 +1002,6 @@ EditorPropertyDictionary::EditorPropertyDictionary() {
 	page_idx = 0;
 	page_len = 10;
 	edit = memnew(Button);
-	edit->set_flat(true);
 	edit->set_h_size_flags(SIZE_EXPAND_FILL);
 	edit->set_clip_text(true);
 	edit->connect("pressed", this, "_edit_pressed");
