@@ -3199,7 +3199,8 @@ void RasterizerStorageGLES3::mesh_add_surface(RID p_mesh, uint32_t p_format, VS:
 
 	//bool has_morph = p_blend_shapes.size();
 
-	Surface::Attrib attribs[VS::ARRAY_MAX];
+	const int attrib_count = VS::ARRAY_MAX + 2; // add 2 for extra bone weight and index arrays
+	Surface::Attrib attribs[attrib_count];
 
 	int stride = 0;
 
@@ -3318,30 +3319,49 @@ void RasterizerStorageGLES3::mesh_add_surface(RID p_mesh, uint32_t p_format, VS:
 
 				if (p_format & VS::ARRAY_FLAG_USE_16_BIT_BONES) {
 					attribs[i].type = GL_UNSIGNED_SHORT;
-					stride += 8;
+					stride += p_format & VS::ARRAY_FLAG_USE_8_WEIGHTS ? 16 : 8;
 				} else {
 					attribs[i].type = GL_UNSIGNED_BYTE;
-					stride += 4;
+					stride += p_format & VS::ARRAY_FLAG_USE_8_WEIGHTS ? 8 : 4;
 				}
 
 				attribs[i].normalized = GL_FALSE;
 				attribs[i].integer = true;
 
+				if (p_format & VS::ARRAY_FLAG_USE_8_WEIGHTS) {
+					attribs[VS::ARRAY_MAX + 0] = attribs[i];
+					attribs[VS::ARRAY_MAX + 0].index = 8;
+					attribs[VS::ARRAY_MAX + 0].offset = attribs[i].offset + (p_format & VS::ARRAY_FLAG_USE_16_BIT_BONES ? 8 : 4);
+				} else {
+					attribs[VS::ARRAY_MAX + 0].enabled = false;
+					attribs[VS::ARRAY_MAX + 0].integer = false;
+				};
+
 			} break;
 			case VS::ARRAY_WEIGHTS: {
 
+				int count = p_format & VS::ARRAY_FLAG_USE_8_WEIGHTS ? 8 : 4;
 				attribs[i].size = 4;
 
 				if (p_format & VS::ARRAY_COMPRESS_WEIGHTS) {
 
 					attribs[i].type = GL_UNSIGNED_SHORT;
-					stride += 8;
+					stride += p_format & VS::ARRAY_FLAG_USE_8_WEIGHTS ? 16 : 8;
 					attribs[i].normalized = GL_TRUE;
 				} else {
 					attribs[i].type = GL_FLOAT;
-					stride += 16;
+					stride += p_format & VS::ARRAY_FLAG_USE_8_WEIGHTS ? 32 : 16;
 					attribs[i].normalized = GL_FALSE;
 				}
+
+				if (p_format & VS::ARRAY_FLAG_USE_8_WEIGHTS) {
+					attribs[VS::ARRAY_MAX + 1] = attribs[i];
+					attribs[VS::ARRAY_MAX + 1].index = 9;
+					attribs[VS::ARRAY_MAX + 1].offset = attribs[i].offset + (p_format & VS::ARRAY_COMPRESS_WEIGHTS ? 8 : 16);
+				} else {
+					attribs[VS::ARRAY_MAX + 1].enabled = false;
+					attribs[VS::ARRAY_MAX + 1].integer = false;
+				};
 
 			} break;
 			case VS::ARRAY_INDEX: {
@@ -3362,7 +3382,9 @@ void RasterizerStorageGLES3::mesh_add_surface(RID p_mesh, uint32_t p_format, VS:
 		}
 	}
 
-	for (int i = 0; i < VS::ARRAY_MAX - 1; i++) {
+	for (int i = 0; i < attrib_count; i++) {
+		if (i == VS::ARRAY_INDEX)
+			continue;
 		attribs[i].stride = stride;
 	}
 
@@ -3437,7 +3459,7 @@ void RasterizerStorageGLES3::mesh_add_surface(RID p_mesh, uint32_t p_format, VS:
 		}
 	}
 
-	for (int i = 0; i < VS::ARRAY_MAX; i++) {
+	for (int i = 0; i < attrib_count; i++) {
 		surface->attribs[i] = attribs[i];
 	}
 
@@ -3476,8 +3498,10 @@ void RasterizerStorageGLES3::mesh_add_surface(RID p_mesh, uint32_t p_format, VS:
 				glBindBuffer(GL_ARRAY_BUFFER, surface->vertex_id);
 			}
 
-			for (int i = 0; i < VS::ARRAY_MAX - 1; i++) {
+			for (int i = 0; i < attrib_count; i++) {
 
+				if (i == VS::ARRAY_INDEX)
+					continue;
 				if (!attribs[i].enabled)
 					continue;
 
@@ -4087,9 +4111,7 @@ void RasterizerStorageGLES3::mesh_render_blend_shapes(Surface *s, const float *p
 		BlendShapeShaderGLES3::ENABLE_TANGENT,
 		BlendShapeShaderGLES3::ENABLE_COLOR,
 		BlendShapeShaderGLES3::ENABLE_UV,
-		BlendShapeShaderGLES3::ENABLE_UV2,
-		BlendShapeShaderGLES3::ENABLE_SKELETON,
-		BlendShapeShaderGLES3::ENABLE_SKELETON,
+		BlendShapeShaderGLES3::ENABLE_UV2
 	};
 
 	int stride = 0;
@@ -4107,11 +4129,11 @@ void RasterizerStorageGLES3::mesh_render_blend_shapes(Surface *s, const float *p
 		4 * 4,
 		2 * 4,
 		2 * 4,
-		4 * 4,
-		4 * 4
+		0,
+		0
 	};
 
-	for (int i = 1; i < VS::ARRAY_MAX - 1; i++) {
+	for (int i = 1; i < VS::ARRAY_BONES; i++) { // no skeleton in this shader
 		shaders.blend_shapes.set_conditional(cond[i], s->format & (1 << i)); //enable conditional for format
 		if (s->format & (1 << i)) {
 			stride += sizes[i];
@@ -4198,14 +4220,9 @@ void RasterizerStorageGLES3::mesh_render_blend_shapes(Surface *s, const float *p
 						ofs += 2 * 4;
 
 					} break;
-					case VS::ARRAY_BONES: {
-						glVertexAttribIPointer(i + 8, 4, GL_UNSIGNED_INT, stride, CAST_INT_TO_UCHAR_PTR(ofs));
-						ofs += 4 * 4;
-
-					} break;
+					case VS::ARRAY_BONES:
 					case VS::ARRAY_WEIGHTS: {
-						glVertexAttribPointer(i + 8, 4, GL_FLOAT, GL_FALSE, stride, CAST_INT_TO_UCHAR_PTR(ofs));
-						ofs += 4 * 4;
+						glDisableVertexAttribArray(i + 8);
 
 					} break;
 				}
@@ -4229,6 +4246,7 @@ void RasterizerStorageGLES3::mesh_render_blend_shapes(Surface *s, const float *p
 	glBindBuffer(GL_ARRAY_BUFFER, resources.transform_feedback_buffers[0]);
 
 	int ofs = 0;
+
 	for (int i = 0; i < VS::ARRAY_MAX - 1; i++) {
 
 		if (s->format & (1 << i)) {
@@ -4236,6 +4254,7 @@ void RasterizerStorageGLES3::mesh_render_blend_shapes(Surface *s, const float *p
 			switch (i) {
 
 				case VS::ARRAY_VERTEX: {
+
 					if (s->format & VS::ARRAY_FLAG_USE_2D_VERTICES) {
 						glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, stride, CAST_INT_TO_UCHAR_PTR(ofs));
 						ofs += 2 * 4;
@@ -4269,13 +4288,37 @@ void RasterizerStorageGLES3::mesh_render_blend_shapes(Surface *s, const float *p
 
 				} break;
 				case VS::ARRAY_BONES: {
-					glVertexAttribIPointer(i, 4, GL_UNSIGNED_INT, stride, CAST_INT_TO_UCHAR_PTR(ofs));
-					ofs += 4 * 4;
+					// get the original bones here
+
+					Surface::Attrib attr = s->attribs[i];
+					glBindBuffer(GL_ARRAY_BUFFER, s->vertex_id);
+					glVertexAttribIPointer(i, attr.size, attr.type, attr.stride, CAST_INT_TO_UCHAR_PTR(attr.offset));
+
+					if (s->format & VS::ARRAY_FLAG_USE_8_WEIGHTS) {
+
+						Surface::Attrib attr = s->attribs[VS::ARRAY_MAX + 0];
+						glEnableVertexAttribArray(attr.index);
+						glVertexAttribIPointer(attr.index, attr.size, attr.type, attr.stride, CAST_INT_TO_UCHAR_PTR(attr.offset));
+					} else {
+
+						glDisableVertexAttribArray(8);
+					};
 
 				} break;
 				case VS::ARRAY_WEIGHTS: {
-					glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, stride, CAST_INT_TO_UCHAR_PTR(ofs));
-					ofs += 4 * 4;
+
+					Surface::Attrib attr = s->attribs[i];
+					glVertexAttribPointer(i, attr.size, attr.type, attr.normalized, attr.stride, CAST_INT_TO_UCHAR_PTR(attr.offset));
+
+					if (s->format & VS::ARRAY_FLAG_USE_8_WEIGHTS) {
+
+						Surface::Attrib attr = s->attribs[VS::ARRAY_MAX + 1];
+						glEnableVertexAttribArray(attr.index);
+						glVertexAttribPointer(attr.index, attr.size, attr.type, attr.normalized, attr.stride, CAST_INT_TO_UCHAR_PTR(attr.offset));
+					} else {
+
+						glDisableVertexAttribArray(9);
+					};
 
 				} break;
 			}
