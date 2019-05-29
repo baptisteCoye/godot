@@ -311,8 +311,8 @@ class EditorSceneImporterGLTF : public EditorSceneImporter {
 	Vector<Transform> _decode_accessor_as_xform(GLTFState &state, int p_accessor, bool p_for_vertex);
 
 	void _reparent_skeleton(GLTFState &state, int p_node, Vector<Skeleton *> &skeletons, Node *p_parent_node);
-	void _generate_bone(GLTFState &state, int p_node, Vector<Skeleton *> &skeletons, Node *p_parent_node);
-	void _generate_node(GLTFState &state, int p_node, Node *p_parent, Node *p_owner, Vector<Skeleton *> &skeletons);
+	void _generate_bone(GLTFState &state, int p_node, Vector<Skeleton *> &skeletons, Node *p_parent_node, Map<String, Transform> p_bones);
+	void _generate_node(GLTFState &state, int p_node, Node *p_parent, Node *p_owner, Vector<Skeleton *> &skeletons, Map<String, Transform> p_bones);
 	void _import_animation(GLTFState &state, AnimationPlayer *ap, int index, int bake_fps, Vector<Skeleton *> skeletons);
 
 	Spatial *_generate_scene(GLTFState &state, int p_bake_fps);
@@ -333,6 +333,8 @@ class EditorSceneImporterGLTF : public EditorSceneImporter {
 
 	template <class T>
 	T _interpolate_track(const Vector<float> &p_times, const Vector<T> &p_values, float p_time, GLTFAnimation::Interpolation p_interp);
+
+	String _canonicalize_name(String p_name);
 
 public:
 	virtual uint32_t get_import_flags() const;

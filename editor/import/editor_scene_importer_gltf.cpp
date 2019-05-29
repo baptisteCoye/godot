@@ -178,6 +178,9 @@ Error EditorSceneImporterGLTF::_parse_scenes(GLTFState &state) {
 
 	ERR_FAIL_COND_V(!state.json.has("scenes"), ERR_FILE_CORRUPT);
 	Array scenes = state.json["scenes"];
+	if (scenes.size() < 1) {
+		return FAILED;
+	}
 	for (int i = 0; i < 1; i++) { //only first scene is imported
 		Dictionary s = scenes[i];
 		ERR_FAIL_COND_V(!s.has("nodes"), ERR_UNAVAILABLE);
@@ -204,7 +207,7 @@ Error EditorSceneImporterGLTF::_parse_nodes(GLTFState &state) {
 		Dictionary n = nodes[i];
 
 		if (n.has("name")) {
-			node->name = n["name"];
+			node->name = _canonicalize_name(n["name"]);
 		}
 		if (n.has("camera")) {
 			node->camera = n["camera"];
@@ -1385,6 +1388,7 @@ Error EditorSceneImporterGLTF::_parse_materials(GLTFState &state) {
 			String am = d["alphaMode"];
 			if (am != "OPAQUE") {
 				material->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+				material->set_depth_draw_mode(SpatialMaterial::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
 			}
 		}
 
@@ -1434,16 +1438,9 @@ Error EditorSceneImporterGLTF::_parse_skins(GLTFState &state) {
 			skin.bones.push_back(bone);
 		}
 
-		print_verbose("glTF: Skin has skeleton? " + itos(d.has("skeleton")));
 		if (d.has("skeleton")) {
-			int skeleton = d["skeleton"];
-			ERR_FAIL_INDEX_V(skeleton, state.nodes.size(), ERR_PARSE_ERROR);
-			print_verbose("glTF: Setting skeleton skin to" + itos(skeleton));
-			skin.skeleton = skeleton;
-			if (!state.skeleton_nodes.has(skeleton)) {
-				state.skeleton_nodes[skeleton] = Vector<int>();
-			}
-			state.skeleton_nodes[skeleton].push_back(i);
+			// Do nothing. This element is ignored.
+			// https://github.com/KhronosGroup/glTF/issues/1270
 		}
 
 		if (d.has("name")) {
@@ -1714,7 +1711,7 @@ void EditorSceneImporterGLTF::_reparent_skeleton(GLTFState &state, int p_node, V
 	}
 }
 
-void EditorSceneImporterGLTF::_generate_node(GLTFState &state, int p_node, Node *p_parent, Node *p_owner, Vector<Skeleton *> &skeletons) {
+void EditorSceneImporterGLTF::_generate_node(GLTFState &state, int p_node, Node *p_parent, Node *p_owner, Vector<Skeleton *> &skeletons, Map<String, Transform> p_bones) {
 	ERR_FAIL_INDEX(p_node, state.nodes.size());
 
 	GLTFNode *n = state.nodes[p_node];
@@ -1780,9 +1777,9 @@ void EditorSceneImporterGLTF::_generate_node(GLTFState &state, int p_node, Node 
 #endif
 	for (int i = 0; i < n->children.size(); i++) {
 		if (state.nodes[n->children[i]]->joints.size()) {
-			_generate_bone(state, n->children[i], skeletons, node);
+			_generate_bone(state, n->children[i], skeletons, node, p_bones);
 		} else {
-			_generate_node(state, n->children[i], node, p_owner, skeletons);
+			_generate_node(state, n->children[i], node, p_owner, skeletons, p_bones);
 		}
 	}
 
@@ -1791,7 +1788,7 @@ void EditorSceneImporterGLTF::_generate_node(GLTFState &state, int p_node, Node 
 	}
 }
 
-void EditorSceneImporterGLTF::_generate_bone(GLTFState &state, int p_node, Vector<Skeleton *> &skeletons, Node *p_parent_node) {
+void EditorSceneImporterGLTF::_generate_bone(GLTFState &state, int p_node, Vector<Skeleton *> &skeletons, Node *p_parent_node, Map<String, Transform> p_bones) {
 	ERR_FAIL_INDEX(p_node, state.nodes.size());
 
 	if (state.skeleton_nodes.has(p_node)) {
@@ -1808,17 +1805,31 @@ void EditorSceneImporterGLTF::_generate_bone(GLTFState &state, int p_node, Vecto
 		const GLTFNode *gltf_bone_node = state.nodes[state.skins[skin].bones[n->joints[i].bone].node];
 		const String bone_name = gltf_bone_node->name;
 		const int parent = gltf_bone_node->parent;
+		if (parent == -1) {
+			continue;
+		}
+		if (p_bones.has(bone_name) && s->find_bone(bone_name) == -1) {
+			s->add_bone(bone_name);
+			int new_bone = s->find_bone(bone_name);
+			s->set_bone_rest(new_bone, p_bones[bone_name]);
+		}
+		String parent_name = state.nodes[parent]->name;
+		if (p_bones.has(parent_name) && s->find_bone(parent_name) == -1) {
+			s->add_bone(parent_name);
+			int new_bone = s->find_bone(parent_name);
+			s->set_bone_rest(new_bone, p_bones[parent_name]);
+		}
 		const int parent_index = s->find_bone(state.nodes[parent]->name);
-
 		const int bone_index = s->find_bone(bone_name);
+		ERR_EXPLAIN("GLTF can't find bone: " + bone_name);
+		ERR_CONTINUE(bone_index == -1);
 		s->set_bone_parent(bone_index, parent_index);
-
 		n->godot_nodes.push_back(s);
 		n->joints.write[i].godot_bone_index = bone_index;
 	}
 
 	for (int i = 0; i < n->children.size(); i++) {
-		_generate_bone(state, n->children[i], skeletons, p_parent_node);
+		_generate_bone(state, n->children[i], skeletons, p_parent_node, p_bones);
 	}
 }
 
@@ -2129,6 +2140,8 @@ Spatial *EditorSceneImporterGLTF::_generate_scene(GLTFState &state, int p_bake_f
 	root->set_name(state.scene_name);
 	//generate skeletons
 	Vector<Skeleton *> skeletons;
+
+	Map<String, Transform> bones;
 	for (int i = 0; i < state.skins.size(); i++) {
 		Skeleton *s = memnew(Skeleton);
 		s->set_use_bones_in_world_transform(false); //GLTF does not need this since meshes are always local
@@ -2137,8 +2150,9 @@ Spatial *EditorSceneImporterGLTF::_generate_scene(GLTFState &state, int p_bake_f
 			name = _gen_unique_name(state, "Skeleton");
 		}
 		for (int j = 0; j < state.skins[i].bones.size(); j++) {
-			s->add_bone(state.nodes[state.skins[i].bones[j].node]->name);
-			s->set_bone_rest(j, state.skins[i].bones[j].inverse_bind.affine_inverse());
+			String name = state.nodes[state.skins[i].bones[j].node]->name;
+			Transform rest = state.skins[i].bones[j].inverse_bind.affine_inverse();
+			bones.insert(name, rest);
 		}
 		s->set_name(name);
 		root->add_child(s);
@@ -2146,10 +2160,11 @@ Spatial *EditorSceneImporterGLTF::_generate_scene(GLTFState &state, int p_bake_f
 		skeletons.push_back(s);
 	}
 	for (int i = 0; i < state.root_nodes.size(); i++) {
+		ERR_CONTINUE(state.root_nodes[i] == -1);
 		if (state.nodes[state.root_nodes[i]]->joints.size()) {
-			_generate_bone(state, state.root_nodes[i], skeletons, root);
+			_generate_bone(state, state.root_nodes[i], skeletons, root, bones);
 		} else {
-			_generate_node(state, state.root_nodes[i], root, root, skeletons);
+			_generate_node(state, state.root_nodes[i], root, root, skeletons, bones);
 		}
 	}
 
@@ -2274,4 +2289,8 @@ Ref<Animation> EditorSceneImporterGLTF::import_animation(const String &p_path, u
 }
 
 EditorSceneImporterGLTF::EditorSceneImporterGLTF() {
+}
+
+String EditorSceneImporterGLTF::_canonicalize_name(String p_name) {
+	return p_name.replace(":", "_");
 }
