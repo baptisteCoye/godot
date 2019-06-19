@@ -1901,7 +1901,7 @@ String EditorSceneImporterAssimp::_assimp_get_string(const aiString &p_string) c
 	String name;
 	name.parse_utf8(raw_name.ptrw(), raw_name.size());
 	if (name.find(":") != -1) {
-		String replaced_name = name.replace(":", "_");
+		String replaced_name = name.split(":")[1];
 		print_verbose("Replacing " + name + " containing : with " + replaced_name);
 		name = replaced_name;
 	}
