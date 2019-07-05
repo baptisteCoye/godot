@@ -2555,7 +2555,7 @@ void EditorNode::_request_screenshot() {
 
 void EditorNode::_screenshot(bool p_use_utc) {
 	String name = "editor_screenshot_" + OS::get_singleton()->get_iso_date_time(p_use_utc).replace(":", "") + ".png";
-	NodePath path = String("user://") + name;
+	NodePath path = String("user://") + TTR("screenshots").plus_file(name);
 	_save_screenshot(path);
 	if (EditorSettings::get_singleton()->get_project_metadata("screenshot_options", "open_screenshot", true)) {
 		OS::get_singleton()->shell_open(String("file://") + ProjectSettings::get_singleton()->globalize_path(path));
