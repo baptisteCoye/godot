@@ -1235,93 +1235,123 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					Ref<Texture> texture = _load_texture(state.scene, path);
 
 					if (texture.is_valid()) {
-				    	_set_texture_mapping_mode(map_mode, texture);
+						_set_texture_mapping_mode(map_mode, texture);
 						mat->set_feature(SpatialMaterial::Feature::FEATURE_NORMAL_MAPPING, true);
 						mat->set_texture(SpatialMaterial::TEXTURE_NORMAL, texture);
 					}
+				}
 			}
-		}
 
-		{
-			aiString tex_fbx_pbs_emissive_path;
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_EMISSION_TEXTURE, tex_fbx_pbs_emissive_path)) {
-				String filename = _assimp_raw_string_to_string(tex_fbx_pbs_emissive_path);
-				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-				bool found = false;
-				_find_texture_path(state.path, path, found);
-				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
-					if (texture != NULL) {
-						mat->set_feature(SpatialMaterial::FEATURE_EMISSION, true);
-						mat->set_texture(SpatialMaterial::TEXTURE_EMISSION, texture);
+			{
+				aiString tex_fbx_pbs_emissive_path;
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_EMISSION_TEXTURE, tex_fbx_pbs_emissive_path)) {
+					String filename = _assimp_raw_string_to_string(tex_fbx_pbs_emissive_path);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
+					_find_texture_path(state.path, path, found);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						if (texture != NULL) {
+							mat->set_feature(SpatialMaterial::FEATURE_EMISSION, true);
+							mat->set_texture(SpatialMaterial::TEXTURE_EMISSION, texture);
+						}
+					}
+				} else {
+					float pbr_emission = 0.0f;
+					if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_EMISSIVE_FACTOR, pbr_emission)) {
+						mat->set_emission(Color(pbr_emission, pbr_emission, pbr_emission, 1.0f));
+					}
+				}
+			}
+
+			{
+				aiString ai_filename = aiString();
+				String filename = "";
+
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_NORMAL_TEXTURE, ai_filename)) {
+					filename = _assimp_raw_string_to_string(ai_filename);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
+					_find_texture_path(state.path, path, found);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						if (texture != NULL) {
+							mat->set_feature(SpatialMaterial::Feature::FEATURE_NORMAL_MAPPING, true);
+							mat->set_texture(SpatialMaterial::TEXTURE_NORMAL, texture);
+						}
+					}
+				}
+			}
+
+			aiTextureType tex_emissive = aiTextureType_EMISSIVE;
+
+			if (ai_material->GetTextureCount(tex_emissive) > 0) {
+
+				aiString ai_filename = aiString();
+				String filename = "";
+				aiTextureMapMode map_mode[2];
+
+				if (AI_SUCCESS == ai_material->GetTexture(tex_emissive, 0, &ai_filename, NULL, NULL, NULL, NULL, map_mode)) {
+					filename = _assimp_raw_string_to_string(ai_filename);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
+					_find_texture_path(state.path, path, found);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						if (texture != NULL) {
+							_set_texture_mapping_mode(map_mode, texture);
+							mat->set_feature(SpatialMaterial::FEATURE_EMISSION, true);
+							mat->set_texture(SpatialMaterial::TEXTURE_EMISSION, texture);
+						}
+					}
+				}
+			}
+
+			aiTextureType tex_albedo = aiTextureType_DIFFUSE;
+			if (ai_material->GetTextureCount(tex_albedo) > 0) {
+
+				aiString ai_filename = aiString();
+				String filename = "";
+				aiTextureMapMode map_mode[2];
+				if (AI_SUCCESS == ai_material->GetTexture(tex_albedo, 0, &ai_filename, NULL, NULL, NULL, NULL, map_mode)) {
+					filename = _assimp_raw_string_to_string(ai_filename);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
+					_find_texture_path(state.path, path, found);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						if (texture != NULL) {
+							if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() != Image::ALPHA_NONE) {
+								_set_texture_mapping_mode(map_mode, texture);
+								mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+								mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
+							}
+							mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
+						}
 					}
 				}
 			} else {
-				float pbr_emission = 0.0f;
-				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_EMISSIVE_FACTOR, pbr_emission)) {
-					mat->set_emission(Color(pbr_emission, pbr_emission, pbr_emission, 1.0f));
-				}
-			}
-		}
-
-		{
-			aiString ai_filename = aiString();
-			String filename = "";
-
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_NORMAL_TEXTURE, ai_filename)) {
-				filename = _assimp_raw_string_to_string(ai_filename);
-				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-				bool found = false;
-				_find_texture_path(state.path, path, found);
-				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
-					if (texture != NULL) {
-						mat->set_feature(SpatialMaterial::Feature::FEATURE_NORMAL_MAPPING, true);
-						mat->set_texture(SpatialMaterial::TEXTURE_NORMAL, texture);
+				aiColor4D clr_diffuse;
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_COLOR_DIFFUSE, clr_diffuse)) {
+					if (Math::is_equal_approx(clr_diffuse.a, 1.0f) == false) {
+						mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+						mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
 					}
+					mat->set_albedo(Color(clr_diffuse.r, clr_diffuse.g, clr_diffuse.b, clr_diffuse.a));
 				}
 			}
-		}
 
-		aiTextureType tex_emissive = aiTextureType_EMISSIVE;
-
-		if (ai_material->GetTextureCount(tex_emissive) > 0) {
-
-			aiString ai_filename = aiString();
-			String filename = "";
-			aiTextureMapMode map_mode[2];
-
-			if (AI_SUCCESS == ai_material->GetTexture(tex_emissive, 0, &ai_filename, NULL, NULL, NULL, NULL, map_mode)) {
-				filename = _assimp_raw_string_to_string(ai_filename);
+			aiString tex_gltf_base_color_path = aiString();
+			if (AI_SUCCESS == ai_material->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE, &tex_gltf_base_color_path, NULL, NULL, NULL, NULL, map_mode)) {
+				String filename = _assimp_raw_string_to_string(tex_gltf_base_color_path);
 				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
 				bool found = false;
 				_find_texture_path(state.path, path, found);
 				if (found) {
 					Ref<Texture> texture = _load_texture(state.scene, path);
+					_find_texture_path(state.path, path, found);
 					if (texture != NULL) {
-						_set_texture_mapping_mode(map_mode, texture);
-						mat->set_feature(SpatialMaterial::FEATURE_EMISSION, true);
-						mat->set_texture(SpatialMaterial::TEXTURE_EMISSION, texture);
-					}
-				}
-			}
-		}
-
-		aiTextureType tex_albedo = aiTextureType_DIFFUSE;
-		if (ai_material->GetTextureCount(tex_albedo) > 0) {
-
-			aiString ai_filename = aiString();
-			String filename = "";
-			aiTextureMapMode map_mode[2];
-			if (AI_SUCCESS == ai_material->GetTexture(tex_albedo, 0, &ai_filename, NULL, NULL, NULL, NULL, map_mode)) {
-				filename = _assimp_raw_string_to_string(ai_filename);
-				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-				bool found = false;
-				_find_texture_path(state.path, path, found);
-				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
-					if (texture != NULL) {
-						if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() != Image::ALPHA_NONE) {
+						if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
 							_set_texture_mapping_mode(map_mode, texture);
 							mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
 							mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
@@ -1329,216 +1359,158 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 						mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
 					}
 				}
-			}
-		} else {
-			aiColor4D clr_diffuse;
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_COLOR_DIFFUSE, clr_diffuse)) {
-				if (Math::is_equal_approx(clr_diffuse.a, 1.0f) == false) {
-					mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
-					mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
-				}
-				mat->set_albedo(Color(clr_diffuse.r, clr_diffuse.g, clr_diffuse.b, clr_diffuse.a));
-			}
-		}
-
-		aiString tex_gltf_base_color_path = aiString();
-		aiTextureMapMode map_mode[2];
-		if (AI_SUCCESS == ai_material->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE, &tex_gltf_base_color_path, NULL, NULL, NULL, NULL, map_mode)) {
-			String filename = _assimp_raw_string_to_string(tex_gltf_base_color_path);
-			String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-			bool found = false;
-			_find_texture_path(state.path, path, found);
-			if (found) {
-				Ref<Texture> texture = _load_texture(state.scene, path);
-				_find_texture_path(state.path, path, found);
-				if (texture != NULL) {
-					if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
-						_set_texture_mapping_mode(map_mode, texture);
+			} else {
+				aiColor4D pbr_base_color;
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, pbr_base_color)) {
+					if (Math::is_equal_approx(pbr_base_color.a, 1.0f) == false) {
 						mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
 						mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
 					}
-					mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
-				}
-			}
-		} else {
-			aiColor4D pbr_base_color;
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, pbr_base_color)) {
-				if (Math::is_equal_approx(pbr_base_color.a, 1.0f) == false) {
-					mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
-					mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
-				}
-				mat->set_albedo(Color(pbr_base_color.r, pbr_base_color.g, pbr_base_color.b, pbr_base_color.a));
-			}
-		}
-		{
-			aiString tex_fbx_pbs_base_color_path = aiString();
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_BASE_COLOR_TEXTURE, tex_fbx_pbs_base_color_path)) {
-				String filename = _assimp_raw_string_to_string(tex_fbx_pbs_base_color_path);
-				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-				bool found = false;
-				_find_texture_path(state.path, path, found);
-				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
-					_find_texture_path(state.path, path, found);
-					if (texture != NULL) {
-						if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
-							mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
-							mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
-						}
-						mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
-					}
-				}
-			} else {
-				aiColor4D pbr_base_color;
-				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_BASE_COLOR_FACTOR, pbr_base_color)) {
 					mat->set_albedo(Color(pbr_base_color.r, pbr_base_color.g, pbr_base_color.b, pbr_base_color.a));
 				}
 			}
-
-			aiUVTransform pbr_base_color_uv_xform;
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_BASE_COLOR_UV_XFORM, pbr_base_color_uv_xform)) {
-				mat->set_uv1_offset(Vector3(pbr_base_color_uv_xform.mTranslation.x, pbr_base_color_uv_xform.mTranslation.y, 0.0f));
-				mat->set_uv1_scale(Vector3(pbr_base_color_uv_xform.mScaling.x, pbr_base_color_uv_xform.mScaling.y, 1.0f));
-			}
-		}
-
-		{
-			aiString tex_fbx_pbs_normal_path = aiString();
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_NORMAL_TEXTURE, tex_fbx_pbs_normal_path)) {
-				String filename = _assimp_raw_string_to_string(tex_fbx_pbs_normal_path);
-				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-				bool found = false;
-				_find_texture_path(state.path, path, found);
-				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
+			{
+				aiString tex_fbx_pbs_base_color_path = aiString();
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_BASE_COLOR_TEXTURE, tex_fbx_pbs_base_color_path)) {
+					String filename = _assimp_raw_string_to_string(tex_fbx_pbs_base_color_path);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
 					_find_texture_path(state.path, path, found);
-					if (texture != NULL) {
-						mat->set_feature(SpatialMaterial::Feature::FEATURE_NORMAL_MAPPING, true);
-						mat->set_texture(SpatialMaterial::TEXTURE_NORMAL, texture);
-					}
-				}
-			}
-		}
-
-		aiString cull_mode;
-		if (p_node->mMetaData) {
-			p_node->mMetaData->Get("Culling", cull_mode);
-		}
-		if (cull_mode.length != 0 && cull_mode == aiString("CullingOff")) {
-			mat->set_cull_mode(SpatialMaterial::CULL_DISABLED);
-		}
-
-		{
-			aiString tex_fbx_stingray_normal_path = aiString();
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_NORMAL_TEXTURE, tex_fbx_stingray_normal_path)) {
-				String filename = _assimp_raw_string_to_string(tex_fbx_stingray_normal_path);
-				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-				bool found = false;
-				_find_texture_path(state.path, path, found);
-				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
-					_find_texture_path(state.path, path, found);
-					if (texture != NULL) {
-						mat->set_feature(SpatialMaterial::Feature::FEATURE_NORMAL_MAPPING, true);
-						mat->set_texture(SpatialMaterial::TEXTURE_NORMAL, texture);
-					}
-				}
-			}
-		}
-
-		{
-			aiString tex_fbx_pbs_base_color_path = aiString();
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_COLOR_TEXTURE, tex_fbx_pbs_base_color_path)) {
-				String filename = _assimp_raw_string_to_string(tex_fbx_pbs_base_color_path);
-				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-				bool found = false;
-				_find_texture_path(state.path, path, found);
-				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
-					_find_texture_path(state.path, path, found);
-					if (texture != NULL) {
-						if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
-							mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
-							mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						_find_texture_path(state.path, path, found);
+						if (texture != NULL) {
+							if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
+								mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+								mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
+							}
+							mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
 						}
-						mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
+					}
+				} else {
+					aiColor4D pbr_base_color;
+					if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_BASE_COLOR_FACTOR, pbr_base_color)) {
+						mat->set_albedo(Color(pbr_base_color.r, pbr_base_color.g, pbr_base_color.b, pbr_base_color.a));
 					}
 				}
-			} else {
-				aiColor4D pbr_base_color;
-				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_BASE_COLOR_FACTOR, pbr_base_color)) {
-					mat->set_albedo(Color(pbr_base_color.r, pbr_base_color.g, pbr_base_color.b, pbr_base_color.a));
+
+				aiUVTransform pbr_base_color_uv_xform;
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_BASE_COLOR_UV_XFORM, pbr_base_color_uv_xform)) {
+					mat->set_uv1_offset(Vector3(pbr_base_color_uv_xform.mTranslation.x, pbr_base_color_uv_xform.mTranslation.y, 0.0f));
+					mat->set_uv1_scale(Vector3(pbr_base_color_uv_xform.mScaling.x, pbr_base_color_uv_xform.mScaling.y, 1.0f));
 				}
 			}
 
-			aiUVTransform pbr_base_color_uv_xform;
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_COLOR_UV_XFORM, pbr_base_color_uv_xform)) {
-				mat->set_uv1_offset(Vector3(pbr_base_color_uv_xform.mTranslation.x, pbr_base_color_uv_xform.mTranslation.y, 0.0f));
-				mat->set_uv1_scale(Vector3(pbr_base_color_uv_xform.mScaling.x, pbr_base_color_uv_xform.mScaling.y, 1.0f));
-			}
-		}
-
-		{
-			aiString tex_fbx_pbs_emissive_path = aiString();
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_EMISSIVE_TEXTURE, tex_fbx_pbs_emissive_path)) {
-				String filename = _assimp_raw_string_to_string(tex_fbx_pbs_emissive_path);
-				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-				bool found = false;
-				_find_texture_path(state.path, path, found);
-				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
+			{
+				aiString tex_fbx_pbs_normal_path = aiString();
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_NORMAL_TEXTURE, tex_fbx_pbs_normal_path)) {
+					String filename = _assimp_raw_string_to_string(tex_fbx_pbs_normal_path);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
 					_find_texture_path(state.path, path, found);
-					if (texture != NULL) {
-						if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
-							mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
-							mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						_find_texture_path(state.path, path, found);
+						if (texture != NULL) {
+							mat->set_feature(SpatialMaterial::Feature::FEATURE_NORMAL_MAPPING, true);
+							mat->set_texture(SpatialMaterial::TEXTURE_NORMAL, texture);
 						}
-						mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
 					}
 				}
-			} else {
-				aiColor4D pbr_emmissive_color;
-				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_EMISSIVE_FACTOR, pbr_emmissive_color)) {
-					mat->set_emission(Color(pbr_emmissive_color.r, pbr_emmissive_color.g, pbr_emmissive_color.b, pbr_emmissive_color.a));
+			}
+
+			aiString cull_mode;
+			if (p_node->mMetaData) {
+				p_node->mMetaData->Get("Culling", cull_mode);
+			}
+			if (cull_mode.length != 0 && cull_mode == aiString("CullingOff")) {
+				mat->set_cull_mode(SpatialMaterial::CULL_DISABLED);
+			}
+
+			{
+				aiString tex_fbx_stingray_normal_path = aiString();
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_NORMAL_TEXTURE, tex_fbx_stingray_normal_path)) {
+					String filename = _assimp_raw_string_to_string(tex_fbx_stingray_normal_path);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
+					_find_texture_path(state.path, path, found);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						_find_texture_path(state.path, path, found);
+						if (texture != NULL) {
+							mat->set_feature(SpatialMaterial::Feature::FEATURE_NORMAL_MAPPING, true);
+							mat->set_texture(SpatialMaterial::TEXTURE_NORMAL, texture);
+						}
+					}
 				}
 			}
 
-			real_t pbr_emission_intensity;
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_EMISSIVE_INTENSITY_FACTOR, pbr_emission_intensity)) {
-				mat->set_emission_energy(pbr_emission_intensity);
-			}
-		}
+			{
+				aiString tex_fbx_pbs_base_color_path = aiString();
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_COLOR_TEXTURE, tex_fbx_pbs_base_color_path)) {
+					String filename = _assimp_raw_string_to_string(tex_fbx_pbs_base_color_path);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
+					_find_texture_path(state.path, path, found);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						_find_texture_path(state.path, path, found);
+						if (texture != NULL) {
+							if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
+								mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+								mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
+							}
+							mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
+						}
+					}
+				} else {
+					aiColor4D pbr_base_color;
+					if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_BASE_COLOR_FACTOR, pbr_base_color)) {
+						mat->set_albedo(Color(pbr_base_color.r, pbr_base_color.g, pbr_base_color.b, pbr_base_color.a));
+					}
+				}
 
-		aiString tex_gltf_pbr_metallicroughness_path;
-		if (AI_SUCCESS == ai_material->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE, &tex_gltf_pbr_metallicroughness_path)) {
-			String filename = _assimp_raw_string_to_string(tex_gltf_pbr_metallicroughness_path);
-			String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-			bool found = false;
-			_find_texture_path(state.path, path, found);
-			if (found) {
-				Ref<Texture> texture = _load_texture(state.scene, path);
-				if (texture != NULL) {
-					mat->set_texture(SpatialMaterial::TEXTURE_METALLIC, texture);
-					mat->set_metallic_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_BLUE);
-					mat->set_texture(SpatialMaterial::TEXTURE_ROUGHNESS, texture);
-					mat->set_roughness_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GREEN);
+				aiUVTransform pbr_base_color_uv_xform;
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_COLOR_UV_XFORM, pbr_base_color_uv_xform)) {
+					mat->set_uv1_offset(Vector3(pbr_base_color_uv_xform.mTranslation.x, pbr_base_color_uv_xform.mTranslation.y, 0.0f));
+					mat->set_uv1_scale(Vector3(pbr_base_color_uv_xform.mScaling.x, pbr_base_color_uv_xform.mScaling.y, 1.0f));
 				}
 			}
-		} else {
-			float pbr_roughness = 0.0f;
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_ROUGHNESS_FACTOR, pbr_roughness)) {
-				mat->set_roughness(pbr_roughness);
-			}
-			float pbr_metallic = 0.0f;
 
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, pbr_metallic)) {
-				mat->set_metallic(pbr_metallic);
+			{
+				aiString tex_fbx_pbs_emissive_path = aiString();
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_EMISSIVE_TEXTURE, tex_fbx_pbs_emissive_path)) {
+					String filename = _assimp_raw_string_to_string(tex_fbx_pbs_emissive_path);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
+					_find_texture_path(state.path, path, found);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						_find_texture_path(state.path, path, found);
+						if (texture != NULL) {
+							if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
+								mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+								mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
+							}
+							mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
+						}
+					}
+				} else {
+					aiColor4D pbr_emmissive_color;
+					if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_EMISSIVE_FACTOR, pbr_emmissive_color)) {
+						mat->set_emission(Color(pbr_emmissive_color.r, pbr_emmissive_color.g, pbr_emmissive_color.b, pbr_emmissive_color.a));
+					}
+				}
+
+				real_t pbr_emission_intensity;
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_EMISSIVE_INTENSITY_FACTOR, pbr_emission_intensity)) {
+					mat->set_emission_energy(pbr_emission_intensity);
+				}
 			}
-		}
-		{
-			aiString tex_fbx_pbs_metallic_path;
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_METALLIC_TEXTURE, tex_fbx_pbs_metallic_path)) {
-				String filename = _assimp_raw_string_to_string(tex_fbx_pbs_metallic_path);
+
+			aiString tex_gltf_pbr_metallicroughness_path;
+			if (AI_SUCCESS == ai_material->GetTexture(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE, &tex_gltf_pbr_metallicroughness_path)) {
+				String filename = _assimp_raw_string_to_string(tex_gltf_pbr_metallicroughness_path);
 				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
 				bool found = false;
 				_find_texture_path(state.path, path, found);
@@ -1546,181 +1518,209 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					Ref<Texture> texture = _load_texture(state.scene, path);
 					if (texture != NULL) {
 						mat->set_texture(SpatialMaterial::TEXTURE_METALLIC, texture);
-						mat->set_metallic_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
+						mat->set_metallic_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_BLUE);
+						mat->set_texture(SpatialMaterial::TEXTURE_ROUGHNESS, texture);
+						mat->set_roughness_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GREEN);
 					}
 				}
 			} else {
+				float pbr_roughness = 0.0f;
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_ROUGHNESS_FACTOR, pbr_roughness)) {
+					mat->set_roughness(pbr_roughness);
+				}
 				float pbr_metallic = 0.0f;
-				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_METALLIC_FACTOR, pbr_metallic)) {
+
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, pbr_metallic)) {
 					mat->set_metallic(pbr_metallic);
 				}
 			}
-
-			aiString tex_fbx_pbs_rough_path;
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_ROUGHNESS_TEXTURE, tex_fbx_pbs_rough_path)) {
-				String filename = _assimp_raw_string_to_string(tex_fbx_pbs_rough_path);
-				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-				bool found = false;
-				_find_texture_path(state.path, path, found);
-				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
-					if (texture != NULL) {
-						mat->set_texture(SpatialMaterial::TEXTURE_ROUGHNESS, texture);
-						mat->set_roughness_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
+			{
+				aiString tex_fbx_pbs_metallic_path;
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_METALLIC_TEXTURE, tex_fbx_pbs_metallic_path)) {
+					String filename = _assimp_raw_string_to_string(tex_fbx_pbs_metallic_path);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
+					_find_texture_path(state.path, path, found);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						if (texture != NULL) {
+							mat->set_texture(SpatialMaterial::TEXTURE_METALLIC, texture);
+							mat->set_metallic_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
+						}
+					}
+				} else {
+					float pbr_metallic = 0.0f;
+					if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_METALLIC_FACTOR, pbr_metallic)) {
+						mat->set_metallic(pbr_metallic);
 					}
 				}
-			} else {
-				float pbr_roughness = 0.04f;
 
-				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_ROUGHNESS_FACTOR, pbr_roughness)) {
-					mat->set_roughness(pbr_roughness);
-				}
-			}
-		}
+				aiString tex_fbx_pbs_rough_path;
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_ROUGHNESS_TEXTURE, tex_fbx_pbs_rough_path)) {
+					String filename = _assimp_raw_string_to_string(tex_fbx_pbs_rough_path);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
+					_find_texture_path(state.path, path, found);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						if (texture != NULL) {
+							mat->set_texture(SpatialMaterial::TEXTURE_ROUGHNESS, texture);
+							mat->set_roughness_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
+						}
+					}
+				} else {
+					float pbr_roughness = 0.04f;
 
-		{
-			aiString tex_fbx_pbs_metallic_path;
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_METALNESS_TEXTURE, tex_fbx_pbs_metallic_path)) {
-				String filename = _assimp_raw_string_to_string(tex_fbx_pbs_metallic_path);
-				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-				bool found = false;
-				_find_texture_path(state.path, path, found);
-				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
-					if (texture != NULL) {
-						mat->set_texture(SpatialMaterial::TEXTURE_METALLIC, texture);
-						mat->set_metallic_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
+					if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_STINGRAY_ROUGHNESS_FACTOR, pbr_roughness)) {
+						mat->set_roughness(pbr_roughness);
 					}
 				}
-			} else {
-				float pbr_metallic = 0.0f;
-				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_METALNESS_FACTOR, pbr_metallic)) {
-					mat->set_metallic(pbr_metallic);
-				}
 			}
 
-			aiString tex_fbx_pbs_rough_path;
-			if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_DIFFUSE_ROUGHNESS_TEXTURE, tex_fbx_pbs_rough_path)) {
-				String filename = _assimp_raw_string_to_string(tex_fbx_pbs_rough_path);
-				String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
-				bool found = false;
-				_find_texture_path(state.path, path, found);
-				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
-					if (texture != NULL) {
-						mat->set_texture(SpatialMaterial::TEXTURE_ROUGHNESS, texture);
-						mat->set_roughness_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
+			{
+				aiString tex_fbx_pbs_metallic_path;
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_METALNESS_TEXTURE, tex_fbx_pbs_metallic_path)) {
+					String filename = _assimp_raw_string_to_string(tex_fbx_pbs_metallic_path);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
+					_find_texture_path(state.path, path, found);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						if (texture != NULL) {
+							mat->set_texture(SpatialMaterial::TEXTURE_METALLIC, texture);
+							mat->set_metallic_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
+						}
+					}
+				} else {
+					float pbr_metallic = 0.0f;
+					if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_METALNESS_FACTOR, pbr_metallic)) {
+						mat->set_metallic(pbr_metallic);
 					}
 				}
-			} else {
-				float pbr_roughness = 0.04f;
 
-				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_DIFFUSE_ROUGHNESS_FACTOR, pbr_roughness)) {
-					mat->set_roughness(pbr_roughness);
+				aiString tex_fbx_pbs_rough_path;
+				if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_DIFFUSE_ROUGHNESS_TEXTURE, tex_fbx_pbs_rough_path)) {
+					String filename = _assimp_raw_string_to_string(tex_fbx_pbs_rough_path);
+					String path = state.path.get_base_dir().plus_file(filename.replace("\\", "/"));
+					bool found = false;
+					_find_texture_path(state.path, path, found);
+					if (found) {
+						Ref<Texture> texture = _load_texture(state.scene, path);
+						if (texture != NULL) {
+							mat->set_texture(SpatialMaterial::TEXTURE_ROUGHNESS, texture);
+							mat->set_roughness_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
+						}
+					}
+				} else {
+					float pbr_roughness = 0.04f;
+
+					if (AI_SUCCESS == ai_material->Get(AI_MATKEY_FBX_MAYA_DIFFUSE_ROUGHNESS_FACTOR, pbr_roughness)) {
+						mat->set_roughness(pbr_roughness);
+					}
 				}
 			}
-		}
 
-		Array array_mesh = st->commit_to_arrays();
-		Array morphs;
-		morphs.resize(ai_mesh->mNumAnimMeshes);
-		Mesh::PrimitiveType primitive = Mesh::PRIMITIVE_TRIANGLES;
-		Map<uint32_t, String> morph_mesh_idx_names;
-		for (size_t j = 0; j < ai_mesh->mNumAnimMeshes; j++) {
+			Array array_mesh = st->commit_to_arrays();
+			Array morphs;
+			morphs.resize(ai_mesh->mNumAnimMeshes);
+			Mesh::PrimitiveType primitive = Mesh::PRIMITIVE_TRIANGLES;
+			Map<uint32_t, String> morph_mesh_idx_names;
+			for (size_t j = 0; j < ai_mesh->mNumAnimMeshes; j++) {
 
-			String ai_anim_mesh_name = _assimp_string_to_string(ai_mesh->mAnimMeshes[j]->mName);
-			mesh->set_blend_shape_mode(Mesh::BLEND_SHAPE_MODE_NORMALIZED);
-			if (ai_anim_mesh_name.empty()) {
-				ai_anim_mesh_name = String("morph_") + itos(j);
+				String ai_anim_mesh_name = _assimp_string_to_string(ai_mesh->mAnimMeshes[j]->mName);
+				mesh->set_blend_shape_mode(Mesh::BLEND_SHAPE_MODE_NORMALIZED);
+				if (ai_anim_mesh_name.empty()) {
+					ai_anim_mesh_name = String("morph_") + itos(j);
+				}
+				mesh->add_blend_shape(ai_anim_mesh_name);
+				morph_mesh_idx_names.insert(j, ai_anim_mesh_name);
+				Array array_copy;
+				array_copy.resize(VisualServer::ARRAY_MAX);
+
+				for (int l = 0; l < VisualServer::ARRAY_MAX; l++) {
+					array_copy[l] = array_mesh[l].duplicate(true);
+				}
+
+				const size_t num_vertices = ai_mesh->mAnimMeshes[j]->mNumVertices;
+				array_copy[Mesh::ARRAY_INDEX] = Variant();
+				if (ai_mesh->mAnimMeshes[j]->HasPositions()) {
+					PoolVector3Array vertices;
+					vertices.resize(num_vertices);
+					for (size_t l = 0; l < num_vertices; l++) {
+						const aiVector3D ai_pos = ai_mesh->mAnimMeshes[j]->mVertices[l];
+						Vector3 position = Vector3(ai_pos.x, ai_pos.y, ai_pos.z);
+						vertices.write()[l] = position;
+					}
+					PoolVector3Array new_vertices = array_copy[VisualServer::ARRAY_VERTEX].duplicate(true);
+					ERR_CONTINUE(vertices.size() != new_vertices.size());
+					for (int32_t l = 0; l < new_vertices.size(); l++) {
+						PoolVector3Array::Write w = new_vertices.write();
+						w[l] = vertices[l];
+					}
+					array_copy[VisualServer::ARRAY_VERTEX] = new_vertices;
+				}
+
+				int32_t color_set = 0;
+				if (ai_mesh->mAnimMeshes[j]->HasVertexColors(color_set)) {
+					PoolColorArray colors;
+					colors.resize(num_vertices);
+					for (size_t l = 0; l < num_vertices; l++) {
+						const aiColor4D ai_color = ai_mesh->mAnimMeshes[j]->mColors[color_set][l];
+						Color color = Color(ai_color.r, ai_color.g, ai_color.b, ai_color.a);
+						colors.write()[l] = color;
+					}
+					PoolColorArray new_colors = array_copy[VisualServer::ARRAY_COLOR].duplicate(true);
+					ERR_CONTINUE(colors.size() != new_colors.size());
+					for (int32_t l = 0; l < colors.size(); l++) {
+						PoolColorArray::Write w = new_colors.write();
+						w[l] = colors[l];
+					}
+					array_copy[VisualServer::ARRAY_COLOR] = new_colors;
+				}
+
+				if (ai_mesh->mAnimMeshes[j]->HasNormals()) {
+					PoolVector3Array normals;
+					normals.resize(num_vertices);
+					for (size_t l = 0; l < num_vertices; l++) {
+						const aiVector3D ai_normal = ai_mesh->mAnimMeshes[i]->mNormals[l];
+						Vector3 normal = Vector3(ai_normal.x, ai_normal.y, ai_normal.z);
+						normals.write()[l] = normal;
+					}
+					PoolVector3Array new_normals = array_copy[VisualServer::ARRAY_NORMAL].duplicate(true);
+					ERR_CONTINUE(normals.size() != new_normals.size());
+					for (int l = 0; l < normals.size(); l++) {
+						PoolVector3Array::Write w = new_normals.write();
+						w[l] = normals[l];
+					}
+					array_copy[VisualServer::ARRAY_NORMAL] = new_normals;
+				}
+
+				if (ai_mesh->mAnimMeshes[j]->HasTangentsAndBitangents()) {
+					PoolColorArray tangents;
+					tangents.resize(num_vertices);
+					PoolColorArray::Write w = tangents.write();
+					for (size_t l = 0; l < num_vertices; l++) {
+						_calc_tangent_from_mesh(ai_mesh, j, l, l, w);
+					}
+					PoolRealArray new_tangents = array_copy[VisualServer::ARRAY_TANGENT].duplicate(true);
+					ERR_CONTINUE(new_tangents.size() != tangents.size() * 4);
+					for (int32_t l = 0; l < tangents.size(); l++) {
+						new_tangents.write()[l + 0] = tangents[l].r;
+						new_tangents.write()[l + 1] = tangents[l].g;
+						new_tangents.write()[l + 2] = tangents[l].b;
+						new_tangents.write()[l + 3] = tangents[l].a;
+					}
+					array_copy[VisualServer::ARRAY_TANGENT] = new_tangents;
+				}
+
+				morphs[j] = array_copy;
 			}
-			mesh->add_blend_shape(ai_anim_mesh_name);
-			morph_mesh_idx_names.insert(j, ai_anim_mesh_name);
-			Array array_copy;
-			array_copy.resize(VisualServer::ARRAY_MAX);
-
-			for (int l = 0; l < VisualServer::ARRAY_MAX; l++) {
-				array_copy[l] = array_mesh[l].duplicate(true);
+			mesh->add_surface_from_arrays(primitive, array_mesh, morphs);
+			mesh->surface_set_material(i, mat);
+			mesh->surface_set_name(i, _assimp_string_to_string(ai_mesh->mName));
+			if (ai_mesh->HasBones()) {
+				state.mesh_skeletons.insert(p_mesh_instance, state.skeleton);
 			}
-
-			const size_t num_vertices = ai_mesh->mAnimMeshes[j]->mNumVertices;
-			array_copy[Mesh::ARRAY_INDEX] = Variant();
-			if (ai_mesh->mAnimMeshes[j]->HasPositions()) {
-				PoolVector3Array vertices;
-				vertices.resize(num_vertices);
-				for (size_t l = 0; l < num_vertices; l++) {
-					const aiVector3D ai_pos = ai_mesh->mAnimMeshes[j]->mVertices[l];
-					Vector3 position = Vector3(ai_pos.x, ai_pos.y, ai_pos.z);
-					vertices.write()[l] = position;
-				}
-				PoolVector3Array new_vertices = array_copy[VisualServer::ARRAY_VERTEX].duplicate(true);
-				ERR_CONTINUE(vertices.size() != new_vertices.size());
-				for (int32_t l = 0; l < new_vertices.size(); l++) {
-					PoolVector3Array::Write w = new_vertices.write();
-					w[l] = vertices[l];
-				}
-				array_copy[VisualServer::ARRAY_VERTEX] = new_vertices;
-			}
-
-			int32_t color_set = 0;
-			if (ai_mesh->mAnimMeshes[j]->HasVertexColors(color_set)) {
-				PoolColorArray colors;
-				colors.resize(num_vertices);
-				for (size_t l = 0; l < num_vertices; l++) {
-					const aiColor4D ai_color = ai_mesh->mAnimMeshes[j]->mColors[color_set][l];
-					Color color = Color(ai_color.r, ai_color.g, ai_color.b, ai_color.a);
-					colors.write()[l] = color;
-				}
-				PoolColorArray new_colors = array_copy[VisualServer::ARRAY_COLOR].duplicate(true);
-				ERR_CONTINUE(colors.size() != new_colors.size());
-				for (int32_t l = 0; l < colors.size(); l++) {
-					PoolColorArray::Write w = new_colors.write();
-					w[l] = colors[l];
-				}
-				array_copy[VisualServer::ARRAY_COLOR] = new_colors;
-			}
-
-			if (ai_mesh->mAnimMeshes[j]->HasNormals()) {
-				PoolVector3Array normals;
-				normals.resize(num_vertices);
-				for (size_t l = 0; l < num_vertices; l++) {
-					const aiVector3D ai_normal = ai_mesh->mAnimMeshes[i]->mNormals[l];
-					Vector3 normal = Vector3(ai_normal.x, ai_normal.y, ai_normal.z);
-					normals.write()[l] = normal;
-				}
-				PoolVector3Array new_normals = array_copy[VisualServer::ARRAY_NORMAL].duplicate(true);
-				ERR_CONTINUE(normals.size() != new_normals.size());
-				for (int l = 0; l < normals.size(); l++) {
-					PoolVector3Array::Write w = new_normals.write();
-					w[l] = normals[l];
-				}
-				array_copy[VisualServer::ARRAY_NORMAL] = new_normals;
-			}
-
-			if (ai_mesh->mAnimMeshes[j]->HasTangentsAndBitangents()) {
-				PoolColorArray tangents;
-				tangents.resize(num_vertices);
-				PoolColorArray::Write w = tangents.write();
-				for (size_t l = 0; l < num_vertices; l++) {
-					_calc_tangent_from_mesh(ai_mesh, j, l, l, w);
-				}
-				PoolRealArray new_tangents = array_copy[VisualServer::ARRAY_TANGENT].duplicate(true);
-				ERR_CONTINUE(new_tangents.size() != tangents.size() * 4);
-				for (int32_t l = 0; l < tangents.size(); l++) {
-					new_tangents.write()[l + 0] = tangents[l].r;
-					new_tangents.write()[l + 1] = tangents[l].g;
-					new_tangents.write()[l + 2] = tangents[l].b;
-					new_tangents.write()[l + 3] = tangents[l].a;
-				}
-				array_copy[VisualServer::ARRAY_TANGENT] = new_tangents;
-			}
-
-			morphs[j] = array_copy;
-		}
-		mesh->add_surface_from_arrays(primitive, array_mesh, morphs);
-		mesh->surface_set_material(i, mat);
-		mesh->surface_set_name(i, _assimp_string_to_string(ai_mesh->mName));
-		if (ai_mesh->HasBones()) {
-			state.mesh_skeletons.insert(p_mesh_instance, state.skeleton);
 		}
 	}
 	p_mesh_instance->set_mesh(mesh);
