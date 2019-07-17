@@ -48,9 +48,9 @@ Copyright NVIDIA Corporation 2006 -- Ignacio Castano <icastano@nvidia.com>
 #include "core/math/vector2.h"
 #include "core/math/vector3.h"
 #include "core/os/os.h"
+#include "optimize.h"
 #include "scene/resources/mesh_data_tool.h"
 #include "scene/resources/surface_tool.h"
-#include "optimize.h"
 
 bool MeshMergeMaterialRepack::setAtlasTexel(void *param, int x, int y, const Vector3 &bar, const Vector3 &, const Vector3 &, float) {
 	SetAtlasTexelArgs *args = (SetAtlasTexelArgs *)param;
@@ -105,7 +105,7 @@ void MeshMergeMaterialRepack::_find_all_mesh_instances(Vector<MeshInstance *> &r
 		_find_all_mesh_instances(r_items, p_current_node->get_child(i), p_owner);
 	}
 }
-Node* MeshMergeMaterialRepack::merge(Node *p_root, Node *p_original_root) {
+Node *MeshMergeMaterialRepack::merge(Node *p_root, Node *p_original_root) {
 	Vector<MeshInstance *> mesh_items;
 	_find_all_mesh_instances(mesh_items, p_root, p_root);
 	Vector<MeshInstance *> original_mesh_items;
@@ -209,7 +209,7 @@ void MeshMergeMaterialRepack::generate_atlas(const int32_t p_num_meshes, PoolVec
 	xatlas::PackCharts(atlas, pack_options);
 }
 
-void MeshMergeMaterialRepack::scale_uvs_by_texture_dimension(Vector<MeshInstance *> &original_mesh_items, Vector<MeshInstance *> &mesh_items, PoolVector<PoolVector2Array> &uv_groups, PoolVector<PoolVector<Ref<Material> >> &r_vertex_to_material, PoolVector<PoolVector<ModelVertex> > &r_model_vertices) {
+void MeshMergeMaterialRepack::scale_uvs_by_texture_dimension(Vector<MeshInstance *> &original_mesh_items, Vector<MeshInstance *> &mesh_items, PoolVector<PoolVector2Array> &uv_groups, PoolVector<PoolVector<Ref<Material> > > &r_vertex_to_material, PoolVector<PoolVector<ModelVertex> > &r_model_vertices) {
 	for (int32_t i = 0; i < mesh_items.size(); i++) {
 		for (int32_t j = 0; j < mesh_items[i]->get_mesh()->get_surface_count(); j++) {
 			r_model_vertices.push_back(PoolVector<ModelVertex>());
@@ -331,7 +331,6 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 	atlas_img_albedo.instance();
 	const float scale = 2.0f;
 	atlas_img_albedo->create(atlas->width, atlas->height, true, Image::FORMAT_RGBA8);
-	atlas_img_albedo->fill(Color());
 	// Rasterize chart triangles.
 	Map<uint16_t, Ref<Image> > image_cache;
 	Map<uint16_t, Ref<Image> > scaled_image_cache;
@@ -351,9 +350,22 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 				}
 				Ref<Texture> tex = material->get_texture(SpatialMaterial::TEXTURE_ALBEDO);
 				if (tex.is_null()) {
+					Ref<Image> empty_image;
+					empty_image.instance();
+					empty_image->create(1, 1, true, Image::FORMAT_RGBA8);
+					empty_image->fill(material->get_albedo());
+					image_cache.insert(chart.material, empty_image);
 					continue;
 				}
 				img = tex->get_data();
+				img->lock();
+				for (int32_t y = 0; y < img->get_height(); y++) {
+					for (int32_t x = 0; x < img->get_width(); x++) {
+						Color c = img->get_pixel(x, y);
+						img->set_pixel(x, y, c * material->get_albedo());
+					}
+				}
+				img->unlock();
 				image_cache.insert(chart.material, img);
 			}
 			ERR_EXPLAIN("Float textures are not supported yet");
@@ -607,7 +619,7 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 		if (r_mesh_items[i]->get_parent()) {
 			r_mesh_items[i]->get_parent()->remove_child(r_mesh_items[i]);
 		}
-	}	
+	}
 	Ref<SurfaceTool> st_all;
 	st_all.instance();
 	st_all->begin(Mesh::PRIMITIVE_TRIANGLES);
