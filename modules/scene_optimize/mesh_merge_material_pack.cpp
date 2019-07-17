@@ -602,7 +602,9 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 		}
 	}
 	for (int32_t i = 0; i < r_mesh_items.size(); i++) {
-		r_mesh_items[i]->get_parent()->remove_child(r_mesh_items[i]);
+		if (r_mesh_items[i]->get_parent()) {
+			r_mesh_items[i]->get_parent()->remove_child(r_mesh_items[i]);
+		}
 	}	
 	Ref<SurfaceTool> st_all;
 	st_all.instance();
