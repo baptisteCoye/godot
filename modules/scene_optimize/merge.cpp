@@ -55,9 +55,7 @@ Copyright NVIDIA Corporation 2006 -- Ignacio Castano <icastano@nvidia.com>
 bool MeshMergeMaterialRepack::setAtlasTexel(void *param, int x, int y, const Vector3 &bar, const Vector3 &, const Vector3 &, float) {
 	SetAtlasTexelArgs *args = (SetAtlasTexelArgs *)param;
 	if (!args->sourceTexture.is_valid()) {
-		args->atlasData->lock();
 		args->atlasData->set_pixel(x, y, Color());
-		args->atlasData->unlock();
 
 	} else {
 		// Interpolate source UVs using barycentrics.
