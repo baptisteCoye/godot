@@ -77,7 +77,7 @@ bool MeshMergeMaterialRepack::setAtlasTexel(void *param, int x, int y, const Vec
 		if ((int32_t)sy >= _height) {
 			sy = Math::fmod(sy, _height);
 		}
-		const Color color = args->sourceTexture->get_pixel(Math::round(sx - 0.5f), Math::round(sy - 0.5f));
+		const Color color = args->sourceTexture->get_pixel(sx, sy);
 
 		args->atlasData->set_pixel(x, y, color);
 
@@ -146,10 +146,10 @@ Node *MeshMergeMaterialRepack::merge(Node *p_root, Node *p_original_root) {
 	PoolVector<AtlasLookupTexel> atlas_lookup;
 	generate_atlas(num_surfaces, uv_groups, atlas, mesh_items, vertex_to_material, material_cache, pack_options);
 	atlas_lookup.resize(atlas->width * atlas->height);
-	Node *root = output(p_root, atlas, mesh_items, vertex_to_material, uv_groups, model_vertices, p_root->get_name(), pack_options, atlas_lookup, material_cache);
+	p_root = output(p_root, atlas, mesh_items, vertex_to_material, uv_groups, model_vertices, p_root->get_name(), pack_options, atlas_lookup, material_cache);
 
 	xatlas::Destroy(atlas);
-	return root;
+	return p_root;
 }
 
 void MeshMergeMaterialRepack::generate_atlas(const int32_t p_num_meshes, PoolVector<PoolVector2Array> &r_uvs, xatlas::Atlas *atlas, Vector<MeshInstance *> &r_meshes, PoolVector<PoolVector<Ref<Material> > > vertex_to_material, const Vector<Ref<Material> > material_cache,
@@ -334,10 +334,9 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 	Ref<Image> atlas_img_albedo;
 	atlas_img_albedo.instance();
 	const float scale = 2.0f;
-	atlas_img_albedo->create(atlas->width, atlas->height, true, Image::FORMAT_RGBA8);
+	atlas_img_albedo->create(atlas->width, atlas->height, false, Image::FORMAT_RGBA8);
 	// Rasterize chart triangles.
 	Map<uint16_t, Ref<Image> > image_cache;
-	Map<uint16_t, Ref<Image> > scaled_image_cache;
 	for (uint32_t i = 0; i < atlas->meshCount; i++) {
 		const xatlas::Mesh &mesh = atlas->meshes[i];
 		for (uint32_t j = 0; j < mesh.chartCount; j++) {
@@ -356,7 +355,7 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 				if (tex.is_null()) {
 					Ref<Image> empty_image;
 					empty_image.instance();
-					empty_image->create(1, 1, true, Image::FORMAT_RGBA8);
+					empty_image->create(1, 1, false, Image::FORMAT_RGBA8);
 					empty_image->fill(material->get_albedo());
 					image_cache.insert(chart.material, empty_image);
 					continue;
@@ -408,12 +407,12 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 			args.sourceTexture->unlock();
 		}
 	}
-	if (false && pack_options.padding > 0) {
+	if (pack_options.padding > 0) {
 		// Run a dilate filter on the atlas texture to fill in padding around charts so bilinear filtering doesn't sample empty texels.
 		// Sample from the source texture(s).
 		Ref<Image> temp_atlas_img_albedo;
 		temp_atlas_img_albedo.instance();
-		temp_atlas_img_albedo->create(atlas->width, atlas->height, true, Image::FORMAT_RGBA8, atlas_img_albedo->get_data());
+		temp_atlas_img_albedo->create(atlas->width, atlas->height, false, Image::FORMAT_RGBA8, atlas_img_albedo->get_data());
 		temp_atlas_img_albedo->fill(Color(0.0f, 0.0f, 0.0f, 1.0f));
 		PoolVector<AtlasLookupTexel> temp_atlas_lookup;
 		temp_atlas_lookup.resize(atlas_lookup.size());
@@ -600,6 +599,7 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 				}
 			}
 		}
+		temp_atlas_img_albedo->generate_mipmaps();
 	}
 	for (int32_t i = 0; i < r_mesh_items.size(); i++) {
 		if (r_mesh_items[i]->get_parent()) {
@@ -634,6 +634,7 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 	if (atlas->width != 0 || atlas->height != 0) {
 		Ref<ImageTexture> texture;
 		texture.instance();
+		atlas_img_albedo->generate_mipmaps();
 		atlas_img_albedo->compress();
 		texture->create_from_image(atlas_img_albedo);
 		mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);

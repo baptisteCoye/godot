@@ -51,20 +51,18 @@
 
 void SceneOptimize::_node_replace_owner(Node *p_base, Node *p_node, Node *p_root) {
 
-	if (p_node->get_owner() == p_base && p_node != p_root) {
-		p_node->set_owner(p_root);
-		p_node->set_filename("");
-	}
+	p_node->set_owner(p_root);
+	p_node->set_filename("");
 
 	for (int i = 0; i < p_node->get_child_count(); i++) {
 		_node_replace_owner(p_base, p_node->get_child(i), p_root);
 	}
 }
 
-void SceneOptimize::optimize(const String p_file, Node *p_root_node) {	
+void SceneOptimize::optimize(const String p_file, Node *p_root_node) {
 	PackedScene *scene = memnew(PackedScene);
 	scene->pack(p_root_node);
-	Node * root = scene->instance();
+	Node *root = scene->instance();
 	_node_replace_owner(root, root, root);
 	Ref<MeshMergeMaterialRepack> repack;
 	repack.instance();
@@ -253,8 +251,10 @@ void SceneOptimize::simplify(Node *p_root_node) {
 						mi->set_transform(spatial->get_transform());
 					}
 				}
-				meshes[i].original_node->get_parent()->add_child(mi);
-				mi->set_owner(p_root_node);
+				if (meshes[i].original_node->get_parent()) {
+					meshes[i].original_node->get_parent()->add_child(mi);
+					mi->set_owner(p_root_node);
+				}
 			}
 		}
 	}
@@ -264,7 +264,9 @@ void SceneOptimize::simplify(Node *p_root_node) {
 		if (!node) {
 			continue;
 		}
-		node->get_parent()->remove_child(node);
+		if (node->get_parent()) {
+			node->get_parent()->remove_child(node);
+		}
 	}
 }
 
