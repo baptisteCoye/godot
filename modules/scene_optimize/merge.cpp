@@ -79,12 +79,9 @@ bool MeshMergeMaterialRepack::setAtlasTexel(void *param, int x, int y, const Vec
 		if ((int32_t)sy >= _height) {
 			sy = Math::fmod(sy, _height);
 		}
-		args->sourceTexture->lock();
 		const Color color = args->sourceTexture->get_pixel(Math::round(sx - 0.5f), Math::round(sy - 0.5f));
-		args->sourceTexture->unlock();
-		args->atlasData->lock();
+
 		args->atlasData->set_pixel(x, y, color);
-		args->atlasData->unlock();
 
 		AtlasLookupTexel lookup = args->atlas_lookup[x + y * args->atlas_width];
 		lookup.material_index = args->material_index;
@@ -342,60 +339,62 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 		const xatlas::Mesh &mesh = atlas->meshes[i];
 		for (uint32_t j = 0; j < mesh.chartCount; j++) {
 			const xatlas::Chart &chart = mesh.chartArray[j];
+			Ref<SpatialMaterial> material;
+			Ref<Image> img;
+			Map<uint16_t, Ref<Image> >::Element *E = image_cache.find(chart.material);
+			if (E) {
+				img = E->get();
+			} else {
+				material = material_cache.get(chart.material);
+				if (material.is_null()) {
+					continue;
+				}
+				Ref<Texture> tex = material->get_texture(SpatialMaterial::TEXTURE_ALBEDO);
+				if (tex.is_null()) {
+					continue;
+				}
+				img = tex->get_data();
+				image_cache.insert(chart.material, img);
+			}
+			ERR_EXPLAIN("Float textures are not supported yet");
+			ERR_CONTINUE(Image::get_format_pixel_size(img->get_format()) > 4);
+			if (img->is_compressed()) {
+				img->decompress();
+				Ref<ImageTexture> image_texture;
+				image_texture.instance();
+				image_texture->create_from_image(img);
+				material = material_cache.get(chart.material);
+				material->set_texture(SpatialMaterial::TEXTURE_ALBEDO, image_texture);
+			}
+			img->convert(Image::FORMAT_RGBA8);
+			Ref<Image> scaled_image;
+			Map<uint16_t, Ref<Image> >::Element *F = scaled_image_cache.find(chart.material);
+			if (F) {
+				scaled_image = F->get();
+			} else {
+				material = material_cache.get(chart.material);
+				if (material.is_null()) {
+					continue;
+				}
+				Ref<Texture> tex = material->get_texture(SpatialMaterial::TEXTURE_ALBEDO);
+				if (tex.is_null()) {
+					continue;
+				}
+				img = tex->get_data();
+				scaled_image = img->duplicate(true);
+				scaled_image->resize(scaled_image->get_width() * scale, scaled_image->get_height() * scale, Image::INTERPOLATE_LANCZOS);
+				scaled_image_cache.insert(chart.material, scaled_image);
+			}
+			SetAtlasTexelArgs args;
+			args.sourceTexture = img;
+			args.atlasData = atlas_img_albedo;
+			args.sourceTexture->lock();
+			args.atlasData->lock();
+			args.atlas_lookup = atlas_lookup;
+			args.scale = scale;
+			args.material_index = (uint16_t)chart.material;
 			for (uint32_t k = 0; k < chart.indexCount / 3; k++) {
 				Vector2 v[3];
-				Ref<SpatialMaterial> material;
-				Ref<Image> img;
-				Map<uint16_t, Ref<Image> >::Element *E = image_cache.find(chart.material);
-				if (E) {
-					img = E->get();
-				} else {
-					material = material_cache.get(chart.material);
-					if (material.is_null()) {
-						continue;
-					}
-					Ref<Texture> tex = material->get_texture(SpatialMaterial::TEXTURE_ALBEDO);
-					if (tex.is_null()) {
-						continue;
-					}
-					img = tex->get_data();
-					image_cache.insert(chart.material, img);
-				}
-				ERR_EXPLAIN("Float textures are not supported yet");
-				ERR_CONTINUE(Image::get_format_pixel_size(img->get_format()) > 4);
-				if (img->is_compressed()) {
-					img->decompress();
-					Ref<ImageTexture> image_texture;
-					image_texture.instance();
-					image_texture->create_from_image(img);
-					material = material_cache.get(chart.material);
-					material->set_texture(SpatialMaterial::TEXTURE_ALBEDO, image_texture);
-				}
-				img->convert(Image::FORMAT_RGBA8);
-				Ref<Image> scaled_image;
-				Map<uint16_t, Ref<Image> >::Element *F = scaled_image_cache.find(chart.material);
-				if (F) {
-					scaled_image = F->get();
-				} else {
-					material = material_cache.get(chart.material);
-					if (material.is_null()) {
-						continue;
-					}
-					Ref<Texture> tex = material->get_texture(SpatialMaterial::TEXTURE_ALBEDO);
-					if (tex.is_null()) {
-						continue;
-					}
-					img = tex->get_data();
-					scaled_image = img->duplicate(true);
-					scaled_image->resize(scaled_image->get_width() * scale, scaled_image->get_height() * scale, Image::INTERPOLATE_LANCZOS);
-					scaled_image_cache.insert(chart.material, scaled_image);
-				}
-				SetAtlasTexelArgs args;
-				args.atlasData = atlas_img_albedo;
-				args.sourceTexture = img;
-				args.atlas_lookup = atlas_lookup;
-				args.scale = scale;
-				args.material_index = (uint16_t)chart.material;
 				for (uint32_t l = 0; l < 3; l++) {
 					const uint32_t index = chart.indexArray[k * 3 + l];
 					const xatlas::Vertex &vertex = mesh.vertexArray[index];
@@ -404,8 +403,11 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 					args.source_uvs[l].y = uvs[i][vertex.xref].y / img->get_height();
 				}
 				Triangle tri(v[0], v[1], v[2], Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1));
+
 				tri.drawAA(setAtlasTexel, &args);
 			}
+			args.atlasData->unlock();
+			args.sourceTexture->unlock();
 		}
 	}
 	if (false && pack_options.padding > 0) {

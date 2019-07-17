@@ -61,14 +61,15 @@ void SceneOptimize::_node_replace_owner(Node *p_base, Node *p_node, Node *p_root
 	}
 }
 
-void SceneOptimize::optimize(const String p_file, Node *p_root_node) {
-	_node_replace_owner(p_root_node, p_root_node, p_root_node);
-	Ref<MeshMergeMaterialRepack> repack;
-	p_root_node = repack->merge(p_root_node);
-	simplify(p_root_node);
-
+void SceneOptimize::optimize(const String p_file, Node *p_root_node) {	
 	PackedScene *scene = memnew(PackedScene);
 	scene->pack(p_root_node);
+	Node * root = scene->instance();
+	_node_replace_owner(root, root, root);
+	Ref<MeshMergeMaterialRepack> repack;
+	p_root_node = repack->merge(root);
+	simplify(root);
+
 	ResourceSaver::save(p_file, scene);
 }
 
