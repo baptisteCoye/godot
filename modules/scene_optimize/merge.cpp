@@ -604,6 +604,11 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 	for (int32_t i = 0; i < r_mesh_items.size(); i++) {
 		if (r_mesh_items[i]->get_parent()) {
 			r_mesh_items[i]->get_parent()->remove_child(r_mesh_items[i]);
+		} else {
+			MeshInstance *mi = r_mesh_items[i];
+			// TODO (Ernest) Need to change the root to be a spatial or a node
+			mi->set_mesh(Ref<Mesh>());
+			mi->set_transform(Transform());
 		}
 	}
 	Ref<SurfaceTool> st_all;

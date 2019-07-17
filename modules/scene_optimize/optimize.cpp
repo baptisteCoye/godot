@@ -131,7 +131,9 @@ void SceneOptimize::simplify(Node *p_root_node) {
 			mi->set_mesh(mesh);
 			mi->set_skeleton_path(meshes[i].skeleton_path);
 			mi->set_name(meshes[i].name);
-			meshes[i].original_node->get_parent()->add_child(mi);
+			if (meshes[i].original_node->get_parent()) {
+				meshes[i].original_node->get_parent()->add_child(mi);
+			}
 			mi->set_owner(p_root_node);
 			continue;
 		}
