@@ -383,24 +383,6 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 				material->set_texture(SpatialMaterial::TEXTURE_ALBEDO, image_texture);
 			}
 			img->convert(Image::FORMAT_RGBA8);
-			Ref<Image> scaled_image;
-			Map<uint16_t, Ref<Image> >::Element *F = scaled_image_cache.find(chart.material);
-			if (F) {
-				scaled_image = F->get();
-			} else {
-				material = material_cache.get(chart.material);
-				if (material.is_null()) {
-					continue;
-				}
-				Ref<Texture> tex = material->get_texture(SpatialMaterial::TEXTURE_ALBEDO);
-				if (tex.is_null()) {
-					continue;
-				}
-				img = tex->get_data();
-				scaled_image = img->duplicate(true);
-				scaled_image->resize(scaled_image->get_width() * scale, scaled_image->get_height() * scale, Image::INTERPOLATE_LANCZOS);
-				scaled_image_cache.insert(chart.material, scaled_image);
-			}
 			SetAtlasTexelArgs args;
 			args.sourceTexture = img;
 			args.atlasData = atlas_img_albedo;
