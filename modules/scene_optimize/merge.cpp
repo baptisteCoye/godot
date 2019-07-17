@@ -109,7 +109,7 @@ Node* MeshMergeMaterialRepack::merge(Node *p_root, Node *p_original_root) {
 	Vector<MeshInstance *> mesh_items;
 	_find_all_mesh_instances(mesh_items, p_root, p_root);
 	Vector<MeshInstance *> original_mesh_items;
-	_find_all_mesh_instances(mesh_items, p_original_root, p_original_root);
+	_find_all_mesh_instances(original_mesh_items, p_original_root, p_original_root);
 	PoolVector<PoolVector<Ref<Material> > > vertex_to_material;
 	Vector<Ref<Material> > material_cache;
 	Ref<Material> empty_material;
