@@ -93,6 +93,9 @@ void MeshMergeMaterialRepack::_find_all_mesh_instances(Vector<MeshInstance *> &r
 	MeshInstance *mi = Object::cast_to<MeshInstance>(p_current_node);
 	if (mi) {
 		Ref<ArrayMesh> array_mesh = mi->get_mesh();
+		if (array_mesh.is_null()) {
+			r_items.push_back(mi);
+		}
 		for (int32_t i = 0; i < array_mesh->get_surface_count(); i++) {
 			Array array = array_mesh->surface_get_arrays(i);
 			Array bones = array[ArrayMesh::ARRAY_BONES];
