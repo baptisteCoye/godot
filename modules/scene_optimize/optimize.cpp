@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  scene_optimize.cpp                                                   */
+/*  optimize.cpp                                                         */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -31,12 +31,12 @@
 // Based on
 // https://github.com/zeux/meshoptimizer/blob/bce99a4bfdc7bbc72479e1d71c4083329d306347/demo/main.cpp
 
-#include "scene_optimize.h"
+#include "optimize.h"
 
 #include "core/object.h"
 #include "core/project_settings.h"
 #include "core/vector.h"
-#include "mesh_merge_material_pack.h"
+#include "merge.h"
 #include "modules/csg/csg_shape.h"
 #include "modules/gridmap/grid_map.h"
 #include "scene/3d/mesh_instance.h"
@@ -48,26 +48,38 @@
 #include "thirdparty/meshoptimizer/src/meshoptimizer.h"
 
 #ifdef TOOLS_ENABLED
-void SceneOptimize::scene_optimize(const String p_file, Node *p_root_node) {
 
-	Ref<PackedScene> packed_scene;
-	packed_scene.instance();
-	packed_scene->pack(p_root_node);
-	Node *root = packed_scene->instance(PackedScene::GEN_EDIT_STATE_INSTANCE);
+void SceneOptimize::_node_replace_owner(Node *p_base, Node *p_node, Node *p_root) {
 
+	if (p_node->get_owner() == p_base && p_node != p_root) {
+		p_node->set_owner(p_root);
+	}
+
+	for (int i = 0; i < p_node->get_child_count(); i++) {
+		_node_replace_owner(p_base, p_node->get_child(i), p_root);
+	}
+}
+
+void SceneOptimize::optimize(const String p_file, Node *p_root_node) {
+	_node_replace_owner(p_root_node, p_root_node, p_root_node);
 	Ref<MeshMergeMaterialRepack> repack;
-	repack.instance();
-	root = repack->pack(root);
+	p_root_node = repack->merge(p_root_node);
+	simplify(p_root_node);
 
-	ERR_FAIL_COND(root == NULL);
+	PackedScene *scene = memnew(PackedScene);
+	scene->pack(p_root_node);
+	ResourceSaver::save(p_file, scene);
+}
+
+void SceneOptimize::simplify(Node *p_root_node) {
 	Vector<MeshInstance *> mesh_items;
-	_find_all_mesh_instances(mesh_items, root, root);
+	_find_all_mesh_instances(mesh_items, p_root_node, p_root_node);
 
 	Vector<CSGShape *> csg_items;
-	_find_all_csg_roots(csg_items, root, root);
+	_find_all_csg_roots(csg_items, p_root_node, p_root_node);
 
 	Vector<GridMap *> grid_map_items;
-	_find_all_gridmaps(grid_map_items, root, root);
+	_find_all_gridmaps(grid_map_items, p_root_node, p_root_node);
 
 	Vector<MeshInfo> meshes;
 	for (int32_t i = 0; i < mesh_items.size(); i++) {
@@ -119,7 +131,7 @@ void SceneOptimize::scene_optimize(const String p_file, Node *p_root_node) {
 			mi->set_skeleton_path(meshes[i].skeleton_path);
 			mi->set_name(meshes[i].name);
 			meshes[i].original_node->get_parent()->add_child(mi);
-			mi->set_owner(root);
+			mi->set_owner(p_root_node);
 			continue;
 		}
 		for (int32_t j = 0; j < mesh->get_surface_count(); j++) {
@@ -239,7 +251,7 @@ void SceneOptimize::scene_optimize(const String p_file, Node *p_root_node) {
 					}
 				}
 				meshes[i].original_node->get_parent()->add_child(mi);
-				mi->set_owner(root);
+				mi->set_owner(p_root_node);
 			}
 		}
 	}
@@ -251,10 +263,6 @@ void SceneOptimize::scene_optimize(const String p_file, Node *p_root_node) {
 		}
 		node->get_parent()->remove_child(node);
 	}
-
-	PackedScene *scene = memnew(PackedScene);
-	scene->pack(root);
-	ResourceSaver::save(p_file, scene);
 }
 
 void SceneOptimize::_find_all_mesh_instances(Vector<MeshInstance *> &r_items, Node *p_current_node, const Node *p_owner) {
@@ -327,7 +335,7 @@ void SceneOptimizePlugin::_dialog_action(String p_file) {
 			node->add_child(scene->instance());
 		}
 	}
-	scene_optimize->scene_optimize(p_file, node);
+	scene_optimize->optimize(p_file, node);
 	EditorFileSystem::get_singleton()->scan_changes();
 	file_export_lib->queue_delete();
 	file_export_lib_merge->queue_delete();

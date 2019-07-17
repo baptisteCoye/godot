@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  scene_optimize.h                                                     */
+/*  optimize.h                                                           */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -49,16 +49,18 @@ private:
 	void _dialog_action(String p_file);
 	void _find_all_gridmaps(Vector<GridMap *> &r_items, Node *p_current_node, const Node *p_owner);
 	void _find_all_csg_roots(Vector<CSGShape *> &r_items, Node *p_current_node, const Node *p_owner);
+	void _node_replace_owner(Node *p_base, Node *p_node, Node *p_root);
 
 public:
 	struct MeshInfo {
 		Transform transform;
 		Ref<Mesh> mesh;
 		String name;
-		Node * original_node;
+		Node *original_node;
 		NodePath skeleton_path;
 	};
-	void scene_optimize(const String p_file, Node *p_root_node);
+	void optimize(const String p_file, Node *p_root_node);
+	void simplify(Node *p_root_node);
 };
 
 class SceneOptimizePlugin : public EditorPlugin {

@@ -44,7 +44,7 @@ Copyright (c) 2013 Thekla, Inc
 Copyright NVIDIA Corporation 2006 -- Ignacio Castano <icastano@nvidia.com>
 */
 
-#include "mesh_merge_material_pack.h"
+#include "merge.h"
 #include "core/math/vector2.h"
 #include "core/math/vector3.h"
 #include "core/os/os.h"
@@ -110,7 +110,7 @@ void MeshMergeMaterialRepack::_find_all_mesh_instances(Vector<MeshInstance *> &r
 		_find_all_mesh_instances(r_items, p_current_node->get_child(i), p_owner);
 	}
 }
-Node *MeshMergeMaterialRepack::pack(Node *p_root) {
+Node *MeshMergeMaterialRepack::merge(Node *p_root) {
 	Vector<MeshInstance *> mesh_items;
 	_find_all_mesh_instances(mesh_items, p_root, p_root);
 	PoolVector<PoolVector<Ref<Material> > > vertex_to_material;

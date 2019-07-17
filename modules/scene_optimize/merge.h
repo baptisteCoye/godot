@@ -167,7 +167,7 @@ private:
 	void _find_all_mesh_instances(Vector<MeshInstance *> &r_items, Node *p_current_node, const Node *p_owner);
 
 public:
-	Node* pack(Node *p_root);
+	Node* merge(Node *p_root);
 	void generate_atlas(const int32_t p_num_meshes, PoolVector<PoolVector2Array> &r_uvs, xatlas::Atlas *atlas, Vector<MeshInstance *> &r_meshes, PoolVector<PoolVector<Ref<Material>> > vertex_to_material, const Vector<Ref<Material> > material_cache,
 						xatlas::PackOptions &pack_options);
 	void scale_uvs_by_texture_dimension(Vector<MeshInstance *> &mesh_items, PoolVector<PoolVector2Array> &uv_groups, PoolVector<PoolVector<Ref<Material> >> &r_vertex_to_material, PoolVector<PoolVector<ModelVertex> > &r_model_vertices);
