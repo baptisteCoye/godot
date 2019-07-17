@@ -274,7 +274,7 @@ void SceneOptimize::simplify(Node *p_root_node) {
 
 void SceneOptimize::_find_all_mesh_instances(Vector<MeshInstance *> &r_items, Node *p_current_node, const Node *p_owner) {
 	MeshInstance *mi = Object::cast_to<MeshInstance>(p_current_node);
-	if (mi != NULL) {
+	if (mi != NULL && mi->get_mesh().is_valid()) {
 		r_items.push_back(mi);
 	}
 	for (int32_t i = 0; i < p_current_node->get_child_count(); i++) {
