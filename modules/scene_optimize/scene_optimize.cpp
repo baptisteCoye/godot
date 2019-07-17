@@ -53,7 +53,7 @@ void SceneOptimize::scene_optimize(const String p_file, Node *p_root_node) {
 	Ref<PackedScene> packed_scene;
 	packed_scene.instance();
 	packed_scene->pack(p_root_node);
-	Node *root = packed_scene->instance();
+	Node *root = packed_scene->instance(PackedScene::GEN_EDIT_STATE_INSTANCE);
 
 	Ref<MeshMergeMaterialRepack> repack;
 	repack.instance();
