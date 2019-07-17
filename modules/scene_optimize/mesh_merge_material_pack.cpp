@@ -96,9 +96,15 @@ bool MeshMergeMaterialRepack::setAtlasTexel(void *param, int x, int y, const Vec
 }
 void MeshMergeMaterialRepack::_find_all_mesh_instances(Vector<MeshInstance *> &r_items, Node *p_current_node, const Node *p_owner) {
 	MeshInstance *mi = Object::cast_to<MeshInstance>(p_current_node);
-
 	if (mi) {
-		r_items.push_back(mi);
+		Ref<ArrayMesh> array_mesh = mi->get_mesh();
+		for (int32_t i = 0; i < array_mesh->get_surface_count(); i++) {
+			Array array = array_mesh->surface_get_arrays(i);
+			Array bones = array[ArrayMesh::ARRAY_BONES];
+			if (!bones.size()) {
+				r_items.push_back(mi);
+			}
+		}
 	}
 	for (int32_t i = 0; i < p_current_node->get_child_count(); i++) {
 		_find_all_mesh_instances(r_items, p_current_node->get_child(i), p_owner);
@@ -595,7 +601,9 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 			}
 		}
 	}
-	Spatial *root = memnew(Spatial);
+	for (int32_t i = 0; i < r_mesh_items.size(); i++) {
+		r_mesh_items[i]->get_parent()->remove_child(r_mesh_items[i]);
+	}	
 	Ref<SurfaceTool> st_all;
 	st_all.instance();
 	st_all->begin(Mesh::PRIMITIVE_TRIANGLES);
@@ -633,9 +641,9 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 	mi->set_mesh(array_mesh);
 	mi->set_name(p_name + "Merged");
 	array_mesh->surface_set_material(0, mat);
-	root->add_child(mi);
-	mi->set_owner(root);
-	return root;
+	p_root->add_child(mi);
+	mi->set_owner(p_root);
+	return p_root;
 }
 
 MeshMergeMaterialRepack::Triangle::Triangle(const Vector2 &v0, const Vector2 &v1, const Vector2 &v2, const Vector3 &t0, const Vector3 &t1, const Vector3 &t2) {

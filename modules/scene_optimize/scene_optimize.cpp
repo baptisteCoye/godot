@@ -57,7 +57,7 @@ void SceneOptimize::scene_optimize(const String p_file, Node *p_root_node) {
 
 	Ref<MeshMergeMaterialRepack> repack;
 	repack.instance();
-	root = repack->pack(p_root_node);
+	root = repack->pack(root);
 
 	ERR_FAIL_COND(root == NULL);
 	Vector<MeshInstance *> mesh_items;
@@ -149,6 +149,7 @@ void SceneOptimize::scene_optimize(const String p_file, Node *p_root_node) {
 			w[0] = unsigned_indices;
 			PoolVector<Vertex> meshopt_vertices;
 			meshopt_vertices.resize(vertexes.size());
+
 			for (int32_t k = 0; k < vertexes.size(); k++) {
 				Vertex meshopt_vertex;
 				Vector3 vertex = vertexes.read()[k];
@@ -231,6 +232,12 @@ void SceneOptimize::scene_optimize(const String p_file, Node *p_root_node) {
 				mi->set_mesh(final_mesh);
 				mi->set_skeleton_path(meshes[i].skeleton_path);
 				mi->set_name(String(meshes[i].name) + itos(j) + "Lod" + itos(r));
+				if (meshes[i].original_node) {
+					Spatial *spatial = Object::cast_to<Spatial>(meshes[i].original_node);
+					if (spatial) {
+						mi->set_transform(spatial->get_transform());
+					}
+				}
 				meshes[i].original_node->get_parent()->add_child(mi);
 				mi->set_owner(root);
 			}
