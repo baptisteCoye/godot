@@ -101,7 +101,7 @@ void MeshMergeMaterialRepack::_find_all_mesh_instances(Vector<MeshInstance *> &r
 		for (int32_t i = 0; i < array_mesh->get_surface_count(); i++) {
 			Array array = array_mesh->surface_get_arrays(i);
 			Array bones = array[ArrayMesh::ARRAY_BONES];
-			if (!bones.size()) {
+			if (!bones.size() && !array_mesh->get_blend_shape_count()) {
 				r_items.push_back(mi);
 			}
 		}
