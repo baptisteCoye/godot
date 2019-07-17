@@ -105,9 +105,11 @@ void MeshMergeMaterialRepack::_find_all_mesh_instances(Vector<MeshInstance *> &r
 		_find_all_mesh_instances(r_items, p_current_node->get_child(i), p_owner);
 	}
 }
-Node *MeshMergeMaterialRepack::merge(Node *p_root) {
+Node* MeshMergeMaterialRepack::merge(Node *p_root, Node *p_original_root) {
 	Vector<MeshInstance *> mesh_items;
 	_find_all_mesh_instances(mesh_items, p_root, p_root);
+	Vector<MeshInstance *> original_mesh_items;
+	_find_all_mesh_instances(mesh_items, p_original_root, p_original_root);
 	PoolVector<PoolVector<Ref<Material> > > vertex_to_material;
 	Vector<Ref<Material> > material_cache;
 	Ref<Material> empty_material;
@@ -116,7 +118,7 @@ Node *MeshMergeMaterialRepack::merge(Node *p_root) {
 
 	PoolVector<PoolVector2Array> uv_groups;
 	PoolVector<PoolVector<ModelVertex> > model_vertices;
-	scale_uvs_by_texture_dimension(mesh_items, uv_groups, vertex_to_material, model_vertices);
+	scale_uvs_by_texture_dimension(original_mesh_items, mesh_items, uv_groups, vertex_to_material, model_vertices);
 
 	xatlas::SetPrint(printf, true);
 	xatlas::Atlas *atlas = xatlas::Create();
@@ -207,7 +209,7 @@ void MeshMergeMaterialRepack::generate_atlas(const int32_t p_num_meshes, PoolVec
 	xatlas::PackCharts(atlas, pack_options);
 }
 
-void MeshMergeMaterialRepack::scale_uvs_by_texture_dimension(Vector<MeshInstance *> &mesh_items, PoolVector<PoolVector2Array> &uv_groups, PoolVector<PoolVector<Ref<Material> > > &r_vertex_to_material, PoolVector<PoolVector<ModelVertex> > &r_model_vertices) {
+void MeshMergeMaterialRepack::scale_uvs_by_texture_dimension(Vector<MeshInstance *> &original_mesh_items, Vector<MeshInstance *> &mesh_items, PoolVector<PoolVector2Array> &uv_groups, PoolVector<PoolVector<Ref<Material> >> &r_vertex_to_material, PoolVector<PoolVector<ModelVertex> > &r_model_vertices) {
 	for (int32_t i = 0; i < mesh_items.size(); i++) {
 		for (int32_t j = 0; j < mesh_items[i]->get_mesh()->get_surface_count(); j++) {
 			r_model_vertices.push_back(PoolVector<ModelVertex>());
@@ -229,7 +231,7 @@ void MeshMergeMaterialRepack::scale_uvs_by_texture_dimension(Vector<MeshInstance
 			PoolVector3Array normal_arr = mesh[Mesh::ARRAY_NORMAL];
 			PoolVector2Array uv_arr = mesh[Mesh::ARRAY_TEX_UV];
 			PoolIntArray index_arr = mesh[Mesh::ARRAY_INDEX];
-			Transform xform = mesh_items[i]->get_relative_transform(mesh_items[i]->get_owner());
+			Transform xform = original_mesh_items[i]->get_global_transform();
 
 			PoolVector<ModelVertex> model_vertices;
 			model_vertices.resize(vertex_arr.size());
