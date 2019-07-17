@@ -82,6 +82,10 @@ void SceneOptimize::simplify(Node *p_root_node) {
 	Vector<GridMap *> grid_map_items;
 	_find_all_gridmaps(grid_map_items, p_root_node, p_root_node);
 
+	if (!mesh_items.size() && !csg_items.size() && !grid_map_items.size()) {
+		return;
+	}
+
 	Vector<MeshInfo> meshes;
 	for (int32_t i = 0; i < mesh_items.size(); i++) {
 		MeshInfo mesh_info;
@@ -274,7 +278,7 @@ void SceneOptimize::simplify(Node *p_root_node) {
 
 void SceneOptimize::_find_all_mesh_instances(Vector<MeshInstance *> &r_items, Node *p_current_node, const Node *p_owner) {
 	MeshInstance *mi = Object::cast_to<MeshInstance>(p_current_node);
-	if (mi != NULL && mi->get_mesh().is_valid()) {
+	if (mi != NULL && mi->get_mesh().is_valid() && mi->get_parent()) {
 		r_items.push_back(mi);
 	}
 	for (int32_t i = 0; i < p_current_node->get_child_count(); i++) {
@@ -284,7 +288,7 @@ void SceneOptimize::_find_all_mesh_instances(Vector<MeshInstance *> &r_items, No
 
 void SceneOptimize::_find_all_gridmaps(Vector<GridMap *> &r_items, Node *p_current_node, const Node *p_owner) {
 	GridMap *gridmap = Object::cast_to<GridMap>(p_current_node);
-	if (gridmap != NULL) {
+	if (gridmap != NULL && gridmap->get_parent()) {
 		r_items.push_back(gridmap);
 		return;
 	}
@@ -295,7 +299,7 @@ void SceneOptimize::_find_all_gridmaps(Vector<GridMap *> &r_items, Node *p_curre
 
 void SceneOptimize::_find_all_csg_roots(Vector<CSGShape *> &r_items, Node *p_current_node, const Node *p_owner) {
 	CSGShape *csg = Object::cast_to<CSGShape>(p_current_node);
-	if (csg != NULL && csg->is_root_shape()) {
+	if (csg != NULL && csg->is_root_shape() && csg->get_parent()) {
 		r_items.push_back(csg);
 		return;
 	}

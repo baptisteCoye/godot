@@ -91,7 +91,7 @@ bool MeshMergeMaterialRepack::setAtlasTexel(void *param, int x, int y, const Vec
 }
 void MeshMergeMaterialRepack::_find_all_mesh_instances(Vector<MeshInstance *> &r_items, Node *p_current_node, const Node *p_owner) {
 	MeshInstance *mi = Object::cast_to<MeshInstance>(p_current_node);
-	if (mi) {
+	if (mi && mi->get_parent()) {
 		Ref<ArrayMesh> array_mesh = mi->get_mesh();
 		if (array_mesh.is_null()) {
 			r_items.push_back(mi);
@@ -114,6 +114,9 @@ Node *MeshMergeMaterialRepack::merge(Node *p_root, Node *p_original_root) {
 	_find_all_mesh_instances(mesh_items, p_root, p_root);
 	Vector<MeshInstance *> original_mesh_items;
 	_find_all_mesh_instances(original_mesh_items, p_original_root, p_original_root);
+	if (!original_mesh_items.size()) {
+		return p_root;
+	}
 	PoolVector<PoolVector<Ref<Material> > > vertex_to_material;
 	Vector<Ref<Material> > material_cache;
 	Ref<Material> empty_material;
@@ -604,11 +607,6 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 	for (int32_t i = 0; i < r_mesh_items.size(); i++) {
 		if (r_mesh_items[i]->get_parent()) {
 			r_mesh_items[i]->get_parent()->remove_child(r_mesh_items[i]);
-		} else {
-			MeshInstance *mi = r_mesh_items[i];
-			// TODO (Ernest) Need to change the root to be a spatial or a node
-			mi->set_mesh(Ref<Mesh>());
-			mi->set_transform(Transform());
 		}
 	}
 	Ref<SurfaceTool> st_all;
