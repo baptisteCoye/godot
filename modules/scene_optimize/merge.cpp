@@ -229,7 +229,7 @@ void MeshMergeMaterialRepack::scale_uvs_by_texture_dimension(Vector<MeshInstance
 			PoolVector3Array normal_arr = mesh[Mesh::ARRAY_NORMAL];
 			PoolVector2Array uv_arr = mesh[Mesh::ARRAY_TEX_UV];
 			PoolIntArray index_arr = mesh[Mesh::ARRAY_INDEX];
-			Transform xform = mesh_items[i]->get_global_transform();
+			Transform xform = mesh_items[i]->get_relative_transform(mesh_items[i]->get_owner());
 
 			PoolVector<ModelVertex> model_vertices;
 			model_vertices.resize(vertex_arr.size());
