@@ -135,9 +135,7 @@ void SceneOptimize::simplify(Node *p_root_node) {
 			mi->set_mesh(mesh);
 			mi->set_skeleton_path(meshes[i].skeleton_path);
 			mi->set_name(meshes[i].name);
-			if (meshes[i].original_node->get_parent()) {
-				meshes[i].original_node->get_parent()->add_child(mi);
-			}
+			meshes[i].original_node->replace_by(mi, true);
 			mi->set_owner(p_root_node);
 			continue;
 		}
@@ -257,28 +255,16 @@ void SceneOptimize::simplify(Node *p_root_node) {
 						mi->set_transform(spatial->get_transform());
 					}
 				}
-				if (meshes[i].original_node->get_parent()) {
-					meshes[i].original_node->get_parent()->add_child(mi);
-					mi->set_owner(p_root_node);
-				}
+				meshes[i].original_node->replace_by(mi, true);
+				mi->set_owner(p_root_node);
 			}
-		}
-	}
-
-	for (int32_t i = 0; i < meshes.size(); i++) {
-		Node *node = meshes[i].original_node;
-		if (!node) {
-			continue;
-		}
-		if (node->get_parent()) {
-			node->get_parent()->remove_child(node);
 		}
 	}
 }
 
 void SceneOptimize::_find_all_mesh_instances(Vector<MeshInstance *> &r_items, Node *p_current_node, const Node *p_owner) {
 	MeshInstance *mi = Object::cast_to<MeshInstance>(p_current_node);
-	if (mi != NULL && mi->get_mesh().is_valid() && mi->get_parent()) {
+	if (mi != NULL && mi->get_mesh().is_valid()) {
 		r_items.push_back(mi);
 	}
 	for (int32_t i = 0; i < p_current_node->get_child_count(); i++) {
@@ -299,7 +285,7 @@ void SceneOptimize::_find_all_gridmaps(Vector<GridMap *> &r_items, Node *p_curre
 
 void SceneOptimize::_find_all_csg_roots(Vector<CSGShape *> &r_items, Node *p_current_node, const Node *p_owner) {
 	CSGShape *csg = Object::cast_to<CSGShape>(p_current_node);
-	if (csg != NULL && csg->is_root_shape() && csg->get_parent()) {
+	if (csg != NULL && csg->is_root_shape()) {
 		r_items.push_back(csg);
 		return;
 	}

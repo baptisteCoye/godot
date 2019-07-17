@@ -91,7 +91,7 @@ bool MeshMergeMaterialRepack::setAtlasTexel(void *param, int x, int y, const Vec
 }
 void MeshMergeMaterialRepack::_find_all_mesh_instances(Vector<MeshInstance *> &r_items, Node *p_current_node, const Node *p_owner) {
 	MeshInstance *mi = Object::cast_to<MeshInstance>(p_current_node);
-	if (mi && mi->get_parent()) {
+	if (mi) {
 		Ref<ArrayMesh> array_mesh = mi->get_mesh();
 		if (array_mesh.is_null()) {
 			r_items.push_back(mi);
