@@ -31,7 +31,7 @@
 #include "register_types.h"
 
 #ifdef TOOLS_ENABLED
-#include "scene_optimize.h"
+#include "optimize.h"
 #endif
 
 void register_scene_optimize_types() {

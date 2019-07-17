@@ -50,7 +50,7 @@ Copyright NVIDIA Corporation 2006 -- Ignacio Castano <icastano@nvidia.com>
 #include "core/os/os.h"
 #include "scene/resources/mesh_data_tool.h"
 #include "scene/resources/surface_tool.h"
-#include "scene_optimize.h"
+#include "optimize.h"
 
 bool MeshMergeMaterialRepack::setAtlasTexel(void *param, int x, int y, const Vector3 &bar, const Vector3 &, const Vector3 &, float) {
 	SetAtlasTexelArgs *args = (SetAtlasTexelArgs *)param;

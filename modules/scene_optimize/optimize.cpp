@@ -53,6 +53,7 @@ void SceneOptimize::_node_replace_owner(Node *p_base, Node *p_node, Node *p_root
 
 	if (p_node->get_owner() == p_base && p_node != p_root) {
 		p_node->set_owner(p_root);
+		p_node->set_filename("");
 	}
 
 	for (int i = 0; i < p_node->get_child_count(); i++) {

@@ -76,7 +76,7 @@ Copyright NVIDIA Corporation 2006 -- Ignacio Castano <icastano@nvidia.com>
 #include "core/math/vector2.h"
 #include "core/reference.h"
 #include "scene/3d/mesh_instance.h"
-#include "scene_optimize.h"
+#include "optimize.h"
 
 class MeshMergeMaterialRepack : public Reference {
 private:
