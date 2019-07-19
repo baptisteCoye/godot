@@ -364,6 +364,9 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 					continue;
 				}
 				img = tex->get_data();
+				if(img->is_compressed()) {
+					img->decompress();
+				}
 				img->lock();
 				for (int32_t y = 0; y < img->get_height(); y++) {
 					for (int32_t x = 0; x < img->get_width(); x++) {
