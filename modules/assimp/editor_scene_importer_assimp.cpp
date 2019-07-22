@@ -111,12 +111,12 @@ Node *EditorSceneImporterAssimp::import_scene(const String &p_path, uint32_t p_f
 	Assimp::Importer importer;
 	std::wstring w_path = ProjectSettings::get_singleton()->globalize_path(p_path).c_str();
 	std::string s_path(w_path.begin(), w_path.end());
-	importer.SetPropertyBool(AI_CONFIG_PP_FD_REMOVE, true);
+	importer.SetPropertyInteger(AI_CONFIG_PP_FD_REMOVE, true);
 	// Cannot remove pivot points because the static mesh will be in the wrong place
-	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, true);
-	importer.SetPropertyBool(AI_CONFIG_IMPORT_REMOVE_EMPTY_BONES, false);
-	// Doesn't convert to m
-	importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, false);
+	importer.SetPropertyInteger(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, true);
+	importer.SetPropertyInteger(AI_CONFIG_IMPORT_REMOVE_EMPTY_BONES, false);
+	importer.SetPropertyInteger(AI_CONFIG_IMPORT_FBX_OPTIMIZE_EMPTY_ANIMATION_CURVES, false);
+	importer.SetPropertyInteger(AI_CONFIG_FBX_CONVERT_TO_M, true);
 	int32_t max_bone_weights = 4;
 	//importer.SetPropertyInteger(AI_CONFIG_PP_LBW_MAX_WEIGHTS, max_bone_weights);
 	//if (p_flags & EditorSceneImporter::IMPORT_ANIMATION_8_WEIGHTS) {
@@ -1005,7 +1005,6 @@ Transform EditorSceneImporterAssimp::_format_rot_xform(State &state) {
 		int32_t front_axis_sign = 0;
 		int32_t coord_axis = 0;
 		int32_t coord_axis_sign = 0;
-		double unit_scale_factor = 0;
 		if (p_scene->mMetaData != NULL) {
 			p_scene->mMetaData->Get("UpAxis", up_axis);
 			p_scene->mMetaData->Get("UpAxisSign", up_axis_sign);
@@ -1013,13 +1012,9 @@ Transform EditorSceneImporterAssimp::_format_rot_xform(State &state) {
 			p_scene->mMetaData->Get("FrontAxisSign", front_axis_sign);
 			p_scene->mMetaData->Get("CoordAxis", coord_axis);
 			p_scene->mMetaData->Get("CoordAxisSign", coord_axis_sign);
-			p_scene->mMetaData->Get("UnitScaleFactor", unit_scale_factor);
 		}
 		AssetImportFbx::UpFrontCoord up_front_coord = { up_axis, up_axis_sign, front_axis, front_axis_sign, coord_axis, coord_axis_sign };
-
-		Vector3 scale = Vector3(unit_scale_factor, unit_scale_factor, unit_scale_factor);
-		scale = scale * 0.01f;
-		xform.basis.set_quat_scale(_get_up_forward(up_front_coord), scale);
+		xform.basis.set_quat_scale(_get_up_forward(up_front_coord), Vector3(1.0f, 1.0f, 1.0f));
 	}
 	return xform;
 }
