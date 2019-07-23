@@ -55,29 +55,26 @@ Copyright NVIDIA Corporation 2006 -- Ignacio Castano <icastano@nvidia.com>
 
 bool MeshMergeMaterialRepack::setAtlasTexel(void *param, int x, int y, const Vector3 &bar, const Vector3 &, const Vector3 &, float) {
 	SetAtlasTexelArgs *args = (SetAtlasTexelArgs *)param;
-	if (!args->sourceTexture.is_valid()) {
-		args->atlasData->set_pixel(x, y, Color());
-
-	} else {
+	if (args->sourceTexture.is_valid()) {
 		// Interpolate source UVs using barycentrics.
 		const Vector2 sourceUv = args->source_uvs[0] * bar.x + args->source_uvs[1] * bar.y + args->source_uvs[2] * bar.z;
 		// Keep coordinates in range of texture dimensions.
 		int _width = args->sourceTexture->get_width();
-		int32_t sx = sourceUv.x * _width;
-		// while (sx < 0) {
-		// 	sx += _width;
-		// }
-		// if ((int32_t)sx >= _width) {
-		// 	sx = Math::fmod(sx, _width);
-		// }
+		float sx = sourceUv.x * _width;
+		while (sx < 0) {
+			sx += _width;
+		}
+		if ((int32_t)sx >= _width) {
+			sx = Math::fmod(sx, _width);
+		}
 		int _height = args->sourceTexture->get_height();
-		int32_t sy = sourceUv.y * _height;
-		// while (sy < 0) {
-		// 	sy += _height;
-		// }
-		// if ((int32_t)sy >= _height) {
-		// 	sy = Math::fmod(sy, _height);
-		// }
+		float sy = sourceUv.y * _height;
+		while (sy < 0) {
+			sy += _height;
+		}
+		if ((int32_t)sy >= _height) {
+			sy = Math::fmod(sy, _height);
+		}
 		const Color color = args->sourceTexture->get_pixel(sx, sy);
 
 		args->atlasData->set_pixel(x, y, color);
@@ -86,8 +83,9 @@ bool MeshMergeMaterialRepack::setAtlasTexel(void *param, int x, int y, const Vec
 		lookup.material_index = args->material_index;
 		lookup.x = (uint16_t)sx;
 		lookup.y = (uint16_t)sy;
+		return true;
 	}
-	return true;
+	return false;
 }
 void MeshMergeMaterialRepack::_find_all_mesh_instances(Vector<MeshInstance *> &r_items, Node *p_current_node, const Node *p_owner) {
 	MeshInstance *mi = Object::cast_to<MeshInstance>(p_current_node);
@@ -372,6 +370,9 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 			if (E) {
 				img = E->get();
 			} else {
+				if (chart.material >= material_cache.size()) {
+					continue;
+				}
 				material = material_cache.get(chart.material);
 				if (material.is_null()) {
 					continue;
@@ -410,10 +411,6 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 				material->set_texture(SpatialMaterial::TEXTURE_ALBEDO, image_texture);
 			}
 			img->convert(Image::FORMAT_RGBA8);
-			if (img->detect_alpha()) {
-				material->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
-				material->set_depth_draw_mode(SpatialMaterial::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
-			}
 			SetAtlasTexelArgs args;
 			args.sourceTexture = img;
 			args.atlasData = atlas_img_albedo;
@@ -670,6 +667,11 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 		atlas_img_albedo->compress();
 		texture->create_from_image(atlas_img_albedo);
 		mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
+
+		if (atlas_img_albedo->detect_alpha()) {
+			mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+			mat->set_depth_draw_mode(SpatialMaterial::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
+		}
 	}
 	MeshInstance *mi = memnew(MeshInstance);
 	Ref<ArrayMesh> array_mesh = st_all->commit();

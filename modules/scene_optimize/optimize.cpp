@@ -244,6 +244,15 @@ void SceneOptimize::simplify(Node *p_root_node) {
 				Ref<ArrayMesh> final_mesh = st->commit();
 				if (mesh->surface_get_material(j).is_valid()) {
 					final_mesh->surface_set_material(0, mesh->surface_get_material(j)->duplicate(true));
+					Ref<SpatialMaterial> mat = final_mesh->surface_get_material(0);
+					
+					if (mat.is_valid()) {
+						Ref<Image> img = mat->get_texture(SpatialMaterial::TEXTURE_ALBEDO);
+						if(img.is_valid()) {
+							mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+							mat->set_depth_draw_mode(SpatialMaterial::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
+						}
+					}
 				}
 				MeshInstance *mi = memnew(MeshInstance);
 				mi->set_mesh(final_mesh);
