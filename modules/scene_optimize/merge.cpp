@@ -79,7 +79,7 @@ bool MeshMergeMaterialRepack::setAtlasTexel(void *param, int x, int y, const Vec
 
 		args->atlasData->set_pixel(x, y, color);
 
-		AtlasLookupTexel &lookup = args->atlas_lookup.write()[x + y * args->atlas_width];
+		AtlasLookupTexel &lookup = args->atlas_lookup.write[x + y * args->atlas_width];
 		lookup.material_index = args->material_index;
 		lookup.x = (uint16_t)sx;
 		lookup.y = (uint16_t)sy;
@@ -150,7 +150,7 @@ Node *MeshMergeMaterialRepack::merge(Node *p_root, Node *p_original_root) {
 		}
 	}
 	xatlas::PackOptions pack_options;
-	PoolVector<AtlasLookupTexel> atlas_lookup;
+	Vector<AtlasLookupTexel> atlas_lookup;
 	generate_atlas(num_surfaces, uv_groups, atlas, mesh_items, vertex_to_material, material_cache, pack_options);
 	atlas_lookup.resize(atlas->width * atlas->height);
 	p_root = output(p_root, atlas, mesh_items, vertex_to_material, uv_groups, model_vertices, p_root->get_name(), pack_options, atlas_lookup, material_cache);
@@ -351,7 +351,7 @@ void MeshMergeMaterialRepack::map_vertex_to_material(Vector<MeshInstance *> mesh
 	}
 }
 
-Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector<MeshInstance *> &r_mesh_items, Array &vertex_to_material, const PoolVector<PoolVector2Array> uvs, const PoolVector<PoolVector<ModelVertex> > &model_vertices, String p_name, const xatlas::PackOptions &pack_options, PoolVector<AtlasLookupTexel> &atlas_lookup, Vector<Ref<Material> > &material_cache) {
+Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector<MeshInstance *> &r_mesh_items, Array &vertex_to_material, const PoolVector<PoolVector2Array> uvs, const PoolVector<PoolVector<ModelVertex> > &model_vertices, String p_name, const xatlas::PackOptions &pack_options, Vector<AtlasLookupTexel> &atlas_lookup, Vector<Ref<Material> > &material_cache) {
 	MeshMergeMaterialRepack::TextureData texture_data;
 	Ref<Image> atlas_img_albedo;
 	atlas_img_albedo.instance();
@@ -435,7 +435,7 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 			args.sourceTexture->unlock();
 		}
 	}
-	if (pack_options.padding > 0) {
+	if (false && pack_options.padding > 0) {
 		// Run a dilate filter on the atlas texture to fill in padding around charts so bilinear filtering doesn't sample empty texels.
 		// Sample from the source texture(s).
 		Ref<Image> temp_atlas_img_albedo;
@@ -449,7 +449,7 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 		const int sampleYOffsets[] = { -1, -1, -1, 0, 0, 1, 1, 1 };
 		for (uint32_t i = 0; i < pack_options.padding; i++) {
 			memcpy(temp_atlas_img_albedo->get_data().write().ptr(), atlas_img_albedo->get_data().read().ptr(), atlas_img_albedo->get_data().size() * sizeof(uint8_t));
-			memcpy(temp_atlas_lookup.write().ptr(), atlas_lookup.read().ptr(), atlas_lookup.size() * sizeof(AtlasLookupTexel));
+			memcpy(temp_atlas_lookup.write().ptr(), atlas_lookup.ptr(), atlas_lookup.size() * sizeof(AtlasLookupTexel));
 			for (uint32_t y = 0; y < atlas->height; y++) {
 				for (uint32_t x = 0; x < atlas->width; x++) {
 					// Try to sample directly from the source texture.
@@ -520,7 +520,7 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 						temp_lookup.y = (uint16_t)ssy;
 						temp_lookup.material_index = lookup.material_index;
 						temp_atlas_lookup.write()[x + y * (int)atlas->width] = temp_lookup;
-						atlas_lookup.write()[x + y * (int)atlas->width] = temp_lookup;
+						atlas_lookup.write[x + y * (int)atlas->width] = temp_lookup;
 						foundSample = true;
 						break;
 					}
