@@ -365,6 +365,7 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 			const xatlas::Chart &chart = mesh.chartArray[j];
 			Ref<SpatialMaterial> material;
 			Ref<Image> img;
+			img.instance();
 			Map<uint16_t, Ref<Image> >::Element *E = image_cache.find(chart.material);
 			if (E) {
 				img = E->get();
@@ -378,22 +379,19 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 				}
 				Ref<Texture> tex = material->get_texture(SpatialMaterial::TEXTURE_ALBEDO);
 				if (tex.is_null()) {
-					Ref<Image> empty_image;
-					empty_image.instance();
-					empty_image->create(1, 1, true, Image::FORMAT_RGBA8);
-					empty_image->fill(material->get_albedo());
-					image_cache.insert(chart.material, empty_image);
-					continue;
-				}
-				img = tex->get_data();
-				if (img->is_compressed()) {
-					img->decompress();
-				}
-				img->lock();
-				for (int32_t y = 0; y < img->get_height(); y++) {
-					for (int32_t x = 0; x < img->get_width(); x++) {
-						Color c = img->get_pixel(x, y);
-						img->set_pixel(x, y, c * material->get_albedo());
+					img->create(1, 1, true, Image::FORMAT_RGBA8);
+					img->fill(material->get_albedo());
+				} else {
+					img = tex->get_data();
+					if (img->is_compressed()) {
+						img->decompress();
+					}
+					img->lock();
+					for (int32_t y = 0; y < img->get_height(); y++) {
+						for (int32_t x = 0; x < img->get_width(); x++) {
+							Color c = img->get_pixel(x, y);
+							img->set_pixel(x, y, c * material->get_albedo());
+						}
 					}
 				}
 				img->unlock();
@@ -584,7 +582,7 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 						// if (ssy >= _height) {
 						// 	ssy = Math::fmod((float)ssy, _height);
 						// }
-						if (ssx < 0 || ssy < 0 || ssx >= img->get_width() || ssy >= img->get_height()) {							
+						if (ssx < 0 || ssy < 0 || ssx >= img->get_width() || ssy >= img->get_height()) {
 							rgb_sum[0] += 0.0f;
 							rgb_sum[1] += 0.0f;
 							rgb_sum[2] += 0.0f;
