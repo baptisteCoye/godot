@@ -1227,9 +1227,12 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 				bool found = false;
 				_find_texture_path(state.path, path, found);
 				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
-
-					if (texture.is_valid()) {
+					Ref<Image> img = _load_image(state.scene, path);
+					if (img.is_valid()) {
+						Ref<ImageTexture> texture;
+						texture.instance();
+						texture->create_from_image(img);
+						texture->set_storage(ImageTexture::STORAGE_COMPRESS_LOSSY);
 						_set_texture_mapping_mode(map_mode, texture);
 						mat->set_feature(SpatialMaterial::Feature::FEATURE_NORMAL_MAPPING, true);
 						mat->set_texture(SpatialMaterial::TEXTURE_NORMAL, texture);
@@ -1245,8 +1248,12 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
-						if (texture != NULL) {
+						Ref<Image> img = _load_image(state.scene, path);
+						if (img.is_valid()) {
+							Ref<ImageTexture> texture;
+							texture.instance();
+							texture->create_from_image(img);
+							texture->set_storage(ImageTexture::STORAGE_COMPRESS_LOSSY);
 							mat->set_feature(SpatialMaterial::FEATURE_EMISSION, true);
 							mat->set_texture(SpatialMaterial::TEXTURE_EMISSION, texture);
 						}
@@ -1269,8 +1276,11 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
-						if (texture != NULL) {
+						Ref<Image> img = _load_image(state.scene, path);
+						if (img.is_valid()) {
+							Ref<ImageTexture> texture;
+							texture.instance();
+							texture->create_from_image(img);
 							mat->set_feature(SpatialMaterial::Feature::FEATURE_NORMAL_MAPPING, true);
 							mat->set_texture(SpatialMaterial::TEXTURE_NORMAL, texture);
 						}
@@ -1292,8 +1302,11 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
-						if (texture != NULL) {
+						Ref<Image> img = _load_image(state.scene, path);
+						if (img.is_valid()) {
+							Ref<ImageTexture> texture;
+							texture.instance();
+							texture->create_from_image(img);
 							_set_texture_mapping_mode(map_mode, texture);
 							mat->set_feature(SpatialMaterial::FEATURE_EMISSION, true);
 							mat->set_texture(SpatialMaterial::TEXTURE_EMISSION, texture);
@@ -1314,15 +1327,16 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
-						if (texture != NULL) {
-							if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() != Image::ALPHA_NONE) {
-								_set_texture_mapping_mode(map_mode, texture);
-								mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
-								mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
-							}
-							mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
+						Ref<Image> img = _load_image(state.scene, path);
+						Ref<ImageTexture> texture;
+						texture.instance();
+						texture->create_from_image(img);
+						if (img.is_valid() && img->detect_alpha() != Image::ALPHA_BIT) {
+							_set_texture_mapping_mode(map_mode, texture);
+							mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+							mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
 						}
+						mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
 					}
 				}
 			} else {
@@ -1343,16 +1357,17 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 				bool found = false;
 				_find_texture_path(state.path, path, found);
 				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
+					Ref<Image> img = _load_image(state.scene, path);
 					_find_texture_path(state.path, path, found);
-					if (texture != NULL) {
-						if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
-							_set_texture_mapping_mode(map_mode, texture);
-							mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
-							mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
-						}
-						mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
+					Ref<ImageTexture> texture;
+					texture.instance();
+					texture->create_from_image(img);
+					if (img.is_valid() && img->detect_alpha() == Image::ALPHA_BLEND) {
+						_set_texture_mapping_mode(map_mode, texture);
+						mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+						mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
 					}
+					mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
 				}
 			} else {
 				aiColor4D pbr_base_color;
@@ -1372,15 +1387,16 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
+						Ref<Image> img = _load_image(state.scene, path);
 						_find_texture_path(state.path, path, found);
-						if (texture != NULL) {
-							if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
-								mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
-								mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
-							}
-							mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
+						Ref<ImageTexture> texture;
+						texture.instance();
+						texture->create_from_image(img);
+						if (img.is_valid() && img->detect_alpha() == Image::ALPHA_BLEND) {
+							mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+							mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
 						}
+						mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
 					}
 				} else {
 					aiColor4D pbr_base_color;
@@ -1404,9 +1420,12 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
+						Ref<Image> img = _load_image(state.scene, path);
 						_find_texture_path(state.path, path, found);
-						if (texture != NULL) {
+						if (img.is_valid()) {
+							Ref<ImageTexture> texture;
+							texture.instance();
+							texture->create_from_image(img);
 							mat->set_feature(SpatialMaterial::Feature::FEATURE_NORMAL_MAPPING, true);
 							mat->set_texture(SpatialMaterial::TEXTURE_NORMAL, texture);
 						}
@@ -1430,9 +1449,12 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
+						Ref<Image> img = _load_image(state.scene, path);
 						_find_texture_path(state.path, path, found);
-						if (texture != NULL) {
+						if (img.is_valid()) {
+							Ref<ImageTexture> texture;
+							texture.instance();
+							texture->create_from_image(img);
 							mat->set_feature(SpatialMaterial::Feature::FEATURE_NORMAL_MAPPING, true);
 							mat->set_texture(SpatialMaterial::TEXTURE_NORMAL, texture);
 						}
@@ -1448,15 +1470,16 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
+						Ref<Image> img = _load_image(state.scene, path);
 						_find_texture_path(state.path, path, found);
-						if (texture != NULL) {
-							if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
-								mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
-								mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
-							}
-							mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
+						Ref<ImageTexture> texture;
+						texture.instance();
+						texture->create_from_image(img);
+						if (img.is_valid() && img->detect_alpha() == Image::ALPHA_BLEND) {
+							mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+							mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
 						}
+						mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
 					}
 				} else {
 					aiColor4D pbr_base_color;
@@ -1480,10 +1503,13 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
+						Ref<Image> img = _load_image(state.scene, path);
 						_find_texture_path(state.path, path, found);
-						if (texture != NULL) {
-							if (texture->get_data().is_valid() && texture->get_data()->detect_alpha() == Image::ALPHA_BLEND) {
+						if (img.is_valid()) {
+							Ref<ImageTexture> texture;
+							texture.instance();
+							texture->create_from_image(img);
+							if (img->detect_alpha() == Image::ALPHA_BLEND) {
 								mat->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
 								mat->set_depth_draw_mode(SpatialMaterial::DepthDrawMode::DEPTH_DRAW_ALPHA_OPAQUE_PREPASS);
 							}
@@ -1510,8 +1536,11 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 				bool found = false;
 				_find_texture_path(state.path, path, found);
 				if (found) {
-					Ref<Texture> texture = _load_texture(state.scene, path);
-					if (texture != NULL) {
+					Ref<Image> img = _load_image(state.scene, path);
+					if (img.is_valid()) {
+						Ref<ImageTexture> texture;
+						texture.instance();
+						texture->create_from_image(img);
 						mat->set_texture(SpatialMaterial::TEXTURE_METALLIC, texture);
 						mat->set_metallic_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_BLUE);
 						mat->set_texture(SpatialMaterial::TEXTURE_ROUGHNESS, texture);
@@ -1537,8 +1566,11 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
-						if (texture != NULL) {
+						Ref<Image> img = _load_image(state.scene, path);
+						if (img.is_valid()) {
+							Ref<ImageTexture> texture;
+							texture.instance();
+							texture->create_from_image(img);
 							mat->set_texture(SpatialMaterial::TEXTURE_METALLIC, texture);
 							mat->set_metallic_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
 						}
@@ -1557,8 +1589,11 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
-						if (texture != NULL) {
+						Ref<Image> img = _load_image(state.scene, path);
+						if (img.is_valid()) {
+							Ref<ImageTexture> texture;
+							texture.instance();
+							texture->create_from_image(img);
 							mat->set_texture(SpatialMaterial::TEXTURE_ROUGHNESS, texture);
 							mat->set_roughness_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
 						}
@@ -1580,8 +1615,11 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
-						if (texture != NULL) {
+						Ref<Image> img = _load_image(state.scene, path);
+						if (img.is_valid()) {
+							Ref<ImageTexture> texture;
+							texture.instance();
+							texture->create_from_image(img);
 							mat->set_texture(SpatialMaterial::TEXTURE_METALLIC, texture);
 							mat->set_metallic_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
 						}
@@ -1600,8 +1638,11 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 					bool found = false;
 					_find_texture_path(state.path, path, found);
 					if (found) {
-						Ref<Texture> texture = _load_texture(state.scene, path);
-						if (texture != NULL) {
+						Ref<Image> img = _load_image(state.scene, path);
+						if (img.is_valid()) {
+							Ref<ImageTexture> texture;
+							texture.instance();
+							texture->create_from_image(img);
 							mat->set_texture(SpatialMaterial::TEXTURE_ROUGHNESS, texture);
 							mat->set_roughness_texture_channel(SpatialMaterial::TEXTURE_CHANNEL_GRAYSCALE);
 						}
@@ -1721,7 +1762,7 @@ void EditorSceneImporterAssimp::_add_mesh_to_mesh_instance(State &state, const a
 	p_mesh_instance->set_mesh(mesh);
 }
 
-Ref<Texture> EditorSceneImporterAssimp::_load_texture(const aiScene *p_scene, String p_path) {
+Ref<Image> EditorSceneImporterAssimp::_load_image(const aiScene *p_scene, String p_path) {
 	Vector<String> split_path = p_path.get_basename().split("*");
 	if (split_path.size() == 2) {
 		size_t texture_idx = split_path[1].to_int();
@@ -1734,20 +1775,11 @@ Ref<Texture> EditorSceneImporterAssimp::_load_texture(const aiScene *p_scene, St
 			if (tex->CheckFormat("png")) {
 				Ref<Image> img = Image::_png_mem_loader_func((uint8_t *)tex->pcData, tex->mWidth);
 				ERR_FAIL_COND_V(img.is_null(), Ref<Texture>());
-
-				Ref<ImageTexture> t;
-				t.instance();
-				t->create_from_image(img);
-				t->set_storage(ImageTexture::STORAGE_COMPRESS_LOSSY);
-				return t;
+				return img;
 			} else if (tex->CheckFormat("jpg")) {
 				Ref<Image> img = Image::_jpg_mem_loader_func((uint8_t *)tex->pcData, tex->mWidth);
 				ERR_FAIL_COND_V(img.is_null(), Ref<Texture>());
-				Ref<ImageTexture> t;
-				t.instance();
-				t->create_from_image(img);
-				t->set_storage(ImageTexture::STORAGE_COMPRESS_LOSSY);
-				return t;
+				return img;
 			} else if (tex->CheckFormat("dds")) {
 				ERR_EXPLAIN("Open Asset Import: Embedded dds not implemented");
 				ERR_FAIL_COND_V(true, Ref<Texture>());
@@ -1776,17 +1808,11 @@ Ref<Texture> EditorSceneImporterAssimp::_load_texture(const aiScene *p_scene, St
 			}
 			img->create(tex->mWidth, tex->mHeight, true, Image::FORMAT_RGBA8, arr);
 			ERR_FAIL_COND_V(img.is_null(), Ref<Texture>());
-
-			Ref<ImageTexture> t;
-			t.instance();
-			t->create_from_image(img);
-			t->set_storage(ImageTexture::STORAGE_COMPRESS_LOSSY);
-			return t;
+			return img;
 		}
-		return Ref<Texture>();
+		return Ref<Image>();
 	}
-	Ref<Texture> p_texture = ResourceLoader::load(p_path, "Texture");
-	return p_texture;
+	return Ref<Image>();
 }
 
 void EditorSceneImporterAssimp::_calc_tangent_from_mesh(const aiMesh *ai_mesh, int i, int tri_index, int index, PoolColorArray::Write &w) {

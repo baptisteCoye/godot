@@ -192,7 +192,7 @@ private:
 	void _get_track_set(const aiScene *p_scene, Set<String> &tracks);
 	void _insert_animation_track(const aiScene *p_scene, const String p_path, int p_bake_fps, Ref<Animation> animation, float ticks_per_second, float length, const Skeleton *sk, const aiNodeAnim *track, String node_name, NodePath node_path);
 	void _add_mesh_to_mesh_instance(State &state, const aiNode *p_node, MeshInstance *p_mesh_instance, Node *p_owner);
-	Ref<Texture> _load_texture(const aiScene *p_scene, String p_path);
+	Ref<Image> _load_image(const aiScene *p_scene, String p_path);
 	void _calc_tangent_from_mesh(const aiMesh *ai_mesh, int i, int tri_index, int index, PoolColorArray::Write &w);
 	void _set_texture_mapping_mode(aiTextureMapMode *map_mode, Ref<Texture> texture);
 	void _find_texture_path(const String &p_path, String &path, bool &r_found);
