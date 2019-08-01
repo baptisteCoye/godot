@@ -334,20 +334,7 @@ void EditorSceneImporterAssimp::_fill_node_relationships(ImportState &state, con
 	Transform pose = _assimp_matrix_transform(p_assimp_node->mTransformation);
 
 	if (!ownership.has(name)) {
-		//not a bone, it's a hole
-		Vector<SkeletonHole> holes = p_holes;
-		SkeletonHole hole; //add a new one
-		hole.name = name;
-		hole.pose = pose;
-		hole.node = p_assimp_node;
-		hole.parent = p_parent_name;
-		//	holes.push_back(hole);
-
-		for (size_t i = 0; i < p_assimp_node->mNumChildren; i++) {
-			_fill_node_relationships(state, p_assimp_node->mChildren[i], ownership, skeleton_map, p_skeleton_id, p_skeleton, name, holecount, holes, bind_xforms);
-		}
-
-		return;
+		return; // done
 	} else if (ownership[name] != p_skeleton_id) {
 		//oh, it's from another skeleton? fine.. reparent all bones to this skeleton.
 		int prev_owner = ownership[name];
@@ -358,22 +345,6 @@ void EditorSceneImporterAssimp::_fill_node_relationships(ImportState &state, con
 				E->get() = p_skeleton_id;
 			}
 		}
-	}
-
-	//valid bone, first fill holes if needed
-	for (int i = 0; i < p_holes.size(); i++) {
-
-		int bone_idx = p_skeleton->get_bone_count();
-		p_skeleton->add_bone(p_holes[i].name);
-		int parent_idx = p_skeleton->find_bone(p_holes[i].parent);
-		if (parent_idx >= 0) {
-			p_skeleton->set_bone_parent(bone_idx, parent_idx);
-		}
-
-		Transform pose_transform = _get_global_assimp_node_transform(p_holes[i].node);
-		p_skeleton->set_bone_rest(bone_idx, pose_transform);
-
-		state.bone_owners[p_holes[i].name] = skeleton_map[p_skeleton_id];
 	}
 
 	//finally fill bone
