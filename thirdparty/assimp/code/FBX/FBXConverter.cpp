@@ -120,8 +120,8 @@ namespace Assimp {
             ConvertGlobalSettings();
             ai_real scale = GetUnitScale(unit);  
             ConvertToUnitScale(scale);
-            TransferDataToScene();
-            RecursiveNodeConverter(out->mRootNode, scale);
+			TransferDataToScene();
+			RecursiveNodeConverter(out->mRootNode, scale);
             
             // if we didn't read any meshes set the AI_SCENE_FLAGS_INCOMPLETE
             // to make sure the scene passes assimp's validation. FBX files
@@ -1520,7 +1520,7 @@ namespace Assimp {
                     // if we found at least one, generate the output bones
                     // XXX this could be heavily simplified by collecting the bone
                     // data in a single step.
-                    if (ok && mRemoveEmptyBones) {
+                    if (ok || !mRemoveEmptyBones) {
                         ConvertCluster(bones, model, *cluster, out_indices, index_out_indices,
                             count_out_indices, node_global_transform);
                     }
@@ -3534,32 +3534,15 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
             out->mMetaData->Set(14, "CustomFrameRate", doc.GlobalSettings().CustomFrameRate());
         }
 
-
-
-        /*void FBXConverter::ScaleMatrixByReal( ai_real real, aiMatrix4x4& out )
-        {
-            aiMatrix4x4::Scaling(aiVector3D(scale,scale,scale), out);
-            aiVector3D position, scaling, rotation;
-            
-            ref.Decompose(scaling, rotation, position);
-            aiMatrix4x4::Translation( aiVector3D(scale*position.x, scale*position.y, scale*position.z), out );
-        }*/
-
         void FBXConverter::RecursiveNodeConverter( aiNode * node, ai_real scale ) {
+			aiMatrix4x4 &ref = node->mTransformation;
+			ref.a4 *= scale;
+			ref.b4 *= scale;
+			ref.c4 *= scale;
 
-            // Change existing node 
-            aiMatrix4x4 &ref = node->mTransformation;
-            // scale matrix 
-            aiMatrix4x4::Scaling(aiVector3D(scale,scale,scale), ref);
-            aiVector3D position, scaling, rotation;
-            
-            ref.Decompose(scaling, rotation, position);
-            aiMatrix4x4::Translation( aiVector3D(scale*position.x, scale*position.y, scale*position.z), ref );
-            
-            for (size_t i = 0; i < node->mNumChildren; i++) {
-		        //_generate_node(state, p_node->mChildren[i], child_node, p_owner);
-                RecursiveNodeConverter( node->mChildren[i], scale );
-            }
+			for (size_t i = 0; i < node->mNumChildren; i++) {
+				RecursiveNodeConverter(node->mChildren[i], scale);
+			}
         }
 
         ai_real FBXConverter::GetUnitScale( FbxUnit unit )
@@ -3621,27 +3604,14 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                 if(anim == nullptr)
                     continue;
 
-                if(anim->mNumChannels && anim->mChannels)
-                {
-                    for( unsigned int x = 0; x < anim->mNumChannels; x++)
-                    {
-                        // note: armature has scale of 100
-                        // why?
-                        // once that is fixed anim should be ok.
-                        
+                if(anim->mNumChannels && anim->mChannels) {
+                    for( unsigned int x = 0; x < anim->mNumChannels; x++) {
                         aiNodeAnim * nodeAnim = anim->mChannels[x];
                         for (unsigned int i = 0; i < nodeAnim->mNumPositionKeys; ++i)
                         {
-                            //aiVectorKey& vectorKey = nodeAnim->mPositionKeys[i];
-                            //vectorKey.mValue *= 1.0f/scale;
+                            aiVectorKey& vectorKey = nodeAnim->mPositionKeys[i];
+                            vectorKey.mValue *= scale;
                         }
-
-                        for (unsigned int i = 0; i < nodeAnim->mNumScalingKeys; ++i)
-                        {
-                           // aiVectorKey& vectorKey = nodeAnim->mScalingKeys[i];
-                           // vectorKey.mValue *= 1.0f/scale;
-                        }
-
                     }
                 }              
             }
@@ -3651,11 +3621,18 @@ void FBXConverter::SetShadingPropertiesRaw(aiMaterial* out_mat, const PropertyTa
                 if (nullptr == mesh)
                     continue;
 
-                // for( int x = 0; x < mesh->mBones; ++x)
-                // {
-                //     aiBone* bone = mesh->mBones[x];
-                //     bone->mOffsetMatrix
-                // }
+				 for (int x = 0; x < mesh->mNumVertices; ++x) {
+					 aiVector3D &pos = mesh->mVertices[x];
+					 pos *= scale;
+				 }
+
+                 for(int x = 0; x < mesh->mNumBones; ++x) {
+                     aiBone* bone = mesh->mBones[x];
+					 aiMatrix4x4 &ref = bone->mOffsetMatrix;
+					 ref.a4 *= scale;
+					 ref.b4 *= scale;
+					 ref.c4 *= scale;
+                 }
                 
                 for (int x = 0; x < mesh->mNumAnimMeshes; ++x) {
                     aiAnimMesh *morphMesh = mesh->mAnimMeshes[x];
