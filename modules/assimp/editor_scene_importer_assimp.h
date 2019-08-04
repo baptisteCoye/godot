@@ -170,6 +170,15 @@ private:
 		float weight;
 	};
 
+	struct BoneCompare {
+		bool operator()(const BoneInfo &a, const BoneInfo &b) const {
+			if (a.weight < b.weight) {
+				return true;
+			}
+			return false;
+		}
+	};
+
 	struct SkeletonHole { //nodes may be part of the skeleton by used by vertex
 		String name;
 		String parent;

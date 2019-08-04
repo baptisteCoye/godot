@@ -1251,6 +1251,9 @@ Ref<Mesh> EditorSceneImporterAssimp::_generate_mesh_from_surface_indices(ImportS
 
 				Vector<BoneInfo> bone_info = vertex_weights[j];
 				Vector<int> bones;
+				bone_info.sort_custom<BoneCompare>();
+				bone_info.invert();
+				bone_info.resize(state.max_bone_weights);
 				bones.resize(bone_info.size());
 				Vector<float> weights;
 				weights.resize(bone_info.size());
@@ -1258,7 +1261,6 @@ Ref<Mesh> EditorSceneImporterAssimp::_generate_mesh_from_surface_indices(ImportS
 					bones.write[k] = bone_info[k].bone;
 					weights.write[k] = bone_info[k].weight;
 				}
-
 				st->add_bones(bones);
 				st->add_weights(weights);
 			}
