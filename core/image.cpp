@@ -1266,7 +1266,8 @@ bool Image::_can_modify(Format p_format) const {
 }
 
 template <class Component, int CC, bool renormalize,
-		void (*average_func)(Component &, const Component &, const Component &, const Component &, const Component &),
+		bool (*alpha_value_func)(const Component &, const Component &, const Component &, const Component &),
+		void (*average_func)(Component &, const Component &, const Component &, const Component &, const Component &, const bool &),
 		void (*renormalize_func)(Component *)>
 static void _generate_po2_mipmap(const Component *p_src, Component *p_dst, uint32_t p_width, uint32_t p_height) {
 
@@ -1286,8 +1287,16 @@ static void _generate_po2_mipmap(const Component *p_src, Component *p_dst, uint3
 
 		while (count--) {
 
-			for (int j = 0; j < CC; j++) {
-				average_func(dst_ptr[j], rup_ptr[j], rup_ptr[j + right_step], rdown_ptr[j], rdown_ptr[j + right_step]);
+			if (CC >= 4) {
+				if (alpha_value_func(rup_ptr[3], rup_ptr[3 + right_step], rdown_ptr[3], rdown_ptr[3 + right_step])) {
+					for (int j = 0; j < CC; j++) {
+						average_func(dst_ptr[j], rup_ptr[j], rup_ptr[j], rup_ptr[j], rup_ptr[j], false);
+					}
+				}
+			} else {
+				for (int j = 0; j < CC; j++) {
+					average_func(dst_ptr[j], rup_ptr[j], rup_ptr[j + right_step], rdown_ptr[j], rdown_ptr[j + right_step], false);
+				}
 			}
 
 			if (renormalize) {
@@ -1381,23 +1390,23 @@ void Image::shrink_x2() {
 			switch (format) {
 
 				case FORMAT_L8:
-				case FORMAT_R8: _generate_po2_mipmap<uint8_t, 1, false, Image::average_4_uint8, Image::renormalize_uint8>(r.ptr(), w.ptr(), width, height); break;
-				case FORMAT_LA8: _generate_po2_mipmap<uint8_t, 2, false, Image::average_4_uint8, Image::renormalize_uint8>(r.ptr(), w.ptr(), width, height); break;
-				case FORMAT_RG8: _generate_po2_mipmap<uint8_t, 2, false, Image::average_4_uint8, Image::renormalize_uint8>(r.ptr(), w.ptr(), width, height); break;
-				case FORMAT_RGB8: _generate_po2_mipmap<uint8_t, 3, false, Image::average_4_uint8, Image::renormalize_uint8>(r.ptr(), w.ptr(), width, height); break;
-				case FORMAT_RGBA8: _generate_po2_mipmap<uint8_t, 4, false, Image::average_4_uint8, Image::renormalize_uint8>(r.ptr(), w.ptr(), width, height); break;
+				case FORMAT_R8: _generate_po2_mipmap<uint8_t, 1, false, Image::alpha_value_uint8, Image::average_4_uint8, Image::renormalize_uint8>(r.ptr(), w.ptr(), width, height); break;
+				case FORMAT_LA8: _generate_po2_mipmap<uint8_t, 2, false, Image::alpha_value_uint8, Image::average_4_uint8, Image::renormalize_uint8>(r.ptr(), w.ptr(), width, height); break;
+				case FORMAT_RG8: _generate_po2_mipmap<uint8_t, 2, false, Image::alpha_value_uint8, Image::average_4_uint8, Image::renormalize_uint8>(r.ptr(), w.ptr(), width, height); break;
+				case FORMAT_RGB8: _generate_po2_mipmap<uint8_t, 3, false, Image::alpha_value_uint8, Image::average_4_uint8, Image::renormalize_uint8>(r.ptr(), w.ptr(), width, height); break;
+				case FORMAT_RGBA8: _generate_po2_mipmap<uint8_t, 4, false, Image::alpha_value_uint8, Image::average_4_uint8, Image::renormalize_uint8>(r.ptr(), w.ptr(), width, height); break;
 
-				case FORMAT_RF: _generate_po2_mipmap<float, 1, false, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(r.ptr()), reinterpret_cast<float *>(w.ptr()), width, height); break;
-				case FORMAT_RGF: _generate_po2_mipmap<float, 2, false, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(r.ptr()), reinterpret_cast<float *>(w.ptr()), width, height); break;
-				case FORMAT_RGBF: _generate_po2_mipmap<float, 3, false, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(r.ptr()), reinterpret_cast<float *>(w.ptr()), width, height); break;
-				case FORMAT_RGBAF: _generate_po2_mipmap<float, 4, false, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(r.ptr()), reinterpret_cast<float *>(w.ptr()), width, height); break;
+				case FORMAT_RF: _generate_po2_mipmap<float, 1, false, Image::alpha_value_float, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(r.ptr()), reinterpret_cast<float *>(w.ptr()), width, height); break;
+				case FORMAT_RGF: _generate_po2_mipmap<float, 2, false, Image::alpha_value_float, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(r.ptr()), reinterpret_cast<float *>(w.ptr()), width, height); break;
+				case FORMAT_RGBF: _generate_po2_mipmap<float, 3, false, Image::alpha_value_float, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(r.ptr()), reinterpret_cast<float *>(w.ptr()), width, height); break;
+				case FORMAT_RGBAF: _generate_po2_mipmap<float, 4, false, Image::alpha_value_float, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(r.ptr()), reinterpret_cast<float *>(w.ptr()), width, height); break;
 
-				case FORMAT_RH: _generate_po2_mipmap<uint16_t, 1, false, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(r.ptr()), reinterpret_cast<uint16_t *>(w.ptr()), width, height); break;
-				case FORMAT_RGH: _generate_po2_mipmap<uint16_t, 2, false, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(r.ptr()), reinterpret_cast<uint16_t *>(w.ptr()), width, height); break;
-				case FORMAT_RGBH: _generate_po2_mipmap<uint16_t, 3, false, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(r.ptr()), reinterpret_cast<uint16_t *>(w.ptr()), width, height); break;
-				case FORMAT_RGBAH: _generate_po2_mipmap<uint16_t, 4, false, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(r.ptr()), reinterpret_cast<uint16_t *>(w.ptr()), width, height); break;
+				case FORMAT_RH: _generate_po2_mipmap<uint16_t, 1, false, Image::alpha_value_half, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(r.ptr()), reinterpret_cast<uint16_t *>(w.ptr()), width, height); break;
+				case FORMAT_RGH: _generate_po2_mipmap<uint16_t, 2, false, Image::alpha_value_half, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(r.ptr()), reinterpret_cast<uint16_t *>(w.ptr()), width, height); break;
+				case FORMAT_RGBH: _generate_po2_mipmap<uint16_t, 3, false, Image::alpha_value_half, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(r.ptr()), reinterpret_cast<uint16_t *>(w.ptr()), width, height); break;
+				case FORMAT_RGBAH: _generate_po2_mipmap<uint16_t, 4, false, Image::alpha_value_half, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(r.ptr()), reinterpret_cast<uint16_t *>(w.ptr()), width, height); break;
 
-				case FORMAT_RGBE9995: _generate_po2_mipmap<uint32_t, 1, false, Image::average_4_rgbe9995, Image::renormalize_rgbe9995>(reinterpret_cast<const uint32_t *>(r.ptr()), reinterpret_cast<uint32_t *>(w.ptr()), width, height); break;
+				case FORMAT_RGBE9995: _generate_po2_mipmap<uint32_t, 1, false, Image::alpha_value_rgbe9995, Image::average_4_rgbe9995, Image::renormalize_rgbe9995>(reinterpret_cast<const uint32_t *>(r.ptr()), reinterpret_cast<uint32_t *>(w.ptr()), width, height); break;
 				default: {
 				}
 			}
@@ -1465,67 +1474,67 @@ Error Image::generate_mipmaps(bool p_renormalize) {
 		switch (format) {
 
 			case FORMAT_L8:
-			case FORMAT_R8: _generate_po2_mipmap<uint8_t, 1, false, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h); break;
+			case FORMAT_R8: _generate_po2_mipmap<uint8_t, 1, false, Image::alpha_value_uint8, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h); break;
 			case FORMAT_LA8:
-			case FORMAT_RG8: _generate_po2_mipmap<uint8_t, 2, false, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h); break;
+			case FORMAT_RG8: _generate_po2_mipmap<uint8_t, 2, false, Image::alpha_value_uint8, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h); break;
 			case FORMAT_RGB8:
 				if (p_renormalize)
-					_generate_po2_mipmap<uint8_t, 3, true, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h);
+					_generate_po2_mipmap<uint8_t, 3, true, Image::alpha_value_uint8, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h);
 				else
-					_generate_po2_mipmap<uint8_t, 3, false, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h);
+					_generate_po2_mipmap<uint8_t, 3, false, Image::alpha_value_uint8, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h);
 
 				break;
 			case FORMAT_RGBA8:
 				if (p_renormalize)
-					_generate_po2_mipmap<uint8_t, 4, true, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h);
+					_generate_po2_mipmap<uint8_t, 4, true, Image::alpha_value_uint8, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h);
 				else
-					_generate_po2_mipmap<uint8_t, 4, false, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h);
+					_generate_po2_mipmap<uint8_t, 4, false, Image::alpha_value_uint8, Image::average_4_uint8, Image::renormalize_uint8>(&wp[prev_ofs], &wp[ofs], prev_w, prev_h);
 				break;
 			case FORMAT_RF:
-				_generate_po2_mipmap<float, 1, false, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
+				_generate_po2_mipmap<float, 1, false, Image::alpha_value_float, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
 				break;
 			case FORMAT_RGF:
-				_generate_po2_mipmap<float, 2, false, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
+				_generate_po2_mipmap<float, 2, false, Image::alpha_value_float, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
 				break;
 			case FORMAT_RGBF:
 				if (p_renormalize)
-					_generate_po2_mipmap<float, 3, true, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
+					_generate_po2_mipmap<float, 3, true, Image::alpha_value_float, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
 				else
-					_generate_po2_mipmap<float, 3, false, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
+					_generate_po2_mipmap<float, 3, false, Image::alpha_value_float, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
 
 				break;
 			case FORMAT_RGBAF:
 				if (p_renormalize)
-					_generate_po2_mipmap<float, 4, true, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
+					_generate_po2_mipmap<float, 4, true, Image::alpha_value_float, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
 				else
-					_generate_po2_mipmap<float, 4, false, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
+					_generate_po2_mipmap<float, 4, false, Image::alpha_value_float, Image::average_4_float, Image::renormalize_float>(reinterpret_cast<const float *>(&wp[prev_ofs]), reinterpret_cast<float *>(&wp[ofs]), prev_w, prev_h);
 
 				break;
 			case FORMAT_RH:
-				_generate_po2_mipmap<uint16_t, 1, false, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
+				_generate_po2_mipmap<uint16_t, 1, false, Image::alpha_value_half, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
 				break;
 			case FORMAT_RGH:
-				_generate_po2_mipmap<uint16_t, 2, false, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
+				_generate_po2_mipmap<uint16_t, 2, false, Image::alpha_value_half, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
 				break;
 			case FORMAT_RGBH:
 				if (p_renormalize)
-					_generate_po2_mipmap<uint16_t, 3, true, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
+					_generate_po2_mipmap<uint16_t, 3, true, Image::alpha_value_half, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
 				else
-					_generate_po2_mipmap<uint16_t, 3, false, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
+					_generate_po2_mipmap<uint16_t, 3, false, Image::alpha_value_half, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
 
 				break;
 			case FORMAT_RGBAH:
 				if (p_renormalize)
-					_generate_po2_mipmap<uint16_t, 4, true, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
+					_generate_po2_mipmap<uint16_t, 4, true, Image::alpha_value_half, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
 				else
-					_generate_po2_mipmap<uint16_t, 4, false, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
+					_generate_po2_mipmap<uint16_t, 4, false, Image::alpha_value_half, Image::average_4_half, Image::renormalize_half>(reinterpret_cast<const uint16_t *>(&wp[prev_ofs]), reinterpret_cast<uint16_t *>(&wp[ofs]), prev_w, prev_h);
 
 				break;
 			case FORMAT_RGBE9995:
 				if (p_renormalize)
-					_generate_po2_mipmap<uint32_t, 1, true, Image::average_4_rgbe9995, Image::renormalize_rgbe9995>(reinterpret_cast<const uint32_t *>(&wp[prev_ofs]), reinterpret_cast<uint32_t *>(&wp[ofs]), prev_w, prev_h);
+					_generate_po2_mipmap<uint32_t, 1, true, Image::alpha_value_rgbe9995, Image::average_4_rgbe9995, Image::renormalize_rgbe9995>(reinterpret_cast<const uint32_t *>(&wp[prev_ofs]), reinterpret_cast<uint32_t *>(&wp[ofs]), prev_w, prev_h);
 				else
-					_generate_po2_mipmap<uint32_t, 1, false, Image::average_4_rgbe9995, Image::renormalize_rgbe9995>(reinterpret_cast<const uint32_t *>(&wp[prev_ofs]), reinterpret_cast<uint32_t *>(&wp[ofs]), prev_w, prev_h);
+					_generate_po2_mipmap<uint32_t, 1, false, Image::alpha_value_rgbe9995, Image::average_4_rgbe9995, Image::renormalize_rgbe9995>(reinterpret_cast<const uint32_t *>(&wp[prev_ofs]), reinterpret_cast<uint32_t *>(&wp[ofs]), prev_w, prev_h);
 
 				break;
 			default: {
@@ -3086,19 +3095,47 @@ Error Image::_load_from_buffer(const PoolVector<uint8_t> &p_array, ImageMemLoadF
 	return OK;
 }
 
-void Image::average_4_uint8(uint8_t &p_out, const uint8_t &p_a, const uint8_t &p_b, const uint8_t &p_c, const uint8_t &p_d) {
+bool Image::alpha_value_uint8(const uint8_t &p_a, const uint8_t &p_b, const uint8_t &p_c, const uint8_t &p_d) {
+	if (p_a != 0xFF || p_b != 0xFF || p_c != 0xFF || p_d != 0xFF) {
+		return true;
+	}
+	return false;
+}
+
+bool Image::alpha_value_float(const float &p_a, const float &p_b, const float &p_c, const float &p_d) {
+	if (p_a != 1.0f || p_b != 1.0f || p_c != 1.0f || p_d != 1.0f) {
+		return true;
+	}
+	return false;
+}
+
+bool Image::alpha_value_half(const uint16_t &p_a, const uint16_t &p_b, const uint16_t &p_c, const uint16_t &p_d) {
+	if (p_a != 0x3c00 || p_b != 0x3c00 || p_c != 0x3c00 || p_d != 0x3c00) {
+		return true;
+	}
+	return false;
+}
+
+bool Image::alpha_value_rgbe9995(const uint32_t &p_a, const uint32_t &p_b, const uint32_t &p_c, const uint32_t &p_d) {
+	if (Color::from_rgbe9995(p_a).a != 1.f || Color::from_rgbe9995(p_b).a != 1.f || Color::from_rgbe9995(p_c).a != 1.f || Color::from_rgbe9995(p_d).a != 1.f) {
+		return true;
+	}
+	return false;
+}
+
+void Image::average_4_uint8(uint8_t & p_out, const uint8_t &p_a, const uint8_t &p_b, const uint8_t &p_c, const uint8_t &p_d, const bool &p_is_alpha) {
 	p_out = static_cast<uint8_t>((p_a + p_b + p_c + p_d + 2) >> 2);
 }
 
-void Image::average_4_float(float &p_out, const float &p_a, const float &p_b, const float &p_c, const float &p_d) {
+void Image::average_4_float(float &p_out, const float &p_a, const float &p_b, const float &p_c, const float &p_d, const bool &p_is_alpha) {
 	p_out = (p_a + p_b + p_c + p_d) * 0.25f;
 }
 
-void Image::average_4_half(uint16_t &p_out, const uint16_t &p_a, const uint16_t &p_b, const uint16_t &p_c, const uint16_t &p_d) {
+void Image::average_4_half(uint16_t &p_out, const uint16_t &p_a, const uint16_t &p_b, const uint16_t &p_c, const uint16_t &p_d, const bool &p_is_alpha) {
 	p_out = Math::make_half_float((Math::half_to_float(p_a) + Math::half_to_float(p_b) + Math::half_to_float(p_c) + Math::half_to_float(p_d)) * 0.25f);
 }
 
-void Image::average_4_rgbe9995(uint32_t &p_out, const uint32_t &p_a, const uint32_t &p_b, const uint32_t &p_c, const uint32_t &p_d) {
+void Image::average_4_rgbe9995(uint32_t &p_out, const uint32_t &p_a, const uint32_t &p_b, const uint32_t &p_c, const uint32_t &p_d, const bool &p_is_alpha) {
 	p_out = ((Color::from_rgbe9995(p_a) + Color::from_rgbe9995(p_b) + Color::from_rgbe9995(p_c) + Color::from_rgbe9995(p_d)) * 0.25f).to_rgbe9995();
 }
 
