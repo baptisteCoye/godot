@@ -188,15 +188,10 @@ private:
 
 	Error _load_from_buffer(const PoolVector<uint8_t> &p_array, ImageMemLoadFunc p_loader);
 
-	static bool alpha_value_uint8(const uint8_t &p_a, const uint8_t &p_b, const uint8_t &p_c, const uint8_t &p_d);
-	static bool alpha_value_float(const float &p_a, const float &p_b, const float &p_c, const float &p_d);
-	static bool alpha_value_half(const uint16_t &p_a, const uint16_t &p_b, const uint16_t &p_c, const uint16_t &p_d);
-	static bool alpha_value_rgbe9995(const uint32_t &p_a, const uint32_t &p_b, const uint32_t &p_c, const uint32_t &p_d);
-
-	static void average_4_uint8(uint8_t &p_out, const uint8_t &p_a, const uint8_t &p_b, const uint8_t &p_c, const uint8_t &p_d, const bool &p_is_alpha);
-	static void average_4_float(float &p_out, const float &p_a, const float &p_b, const float &p_c, const float &p_d, const bool& p_is_alpha);
-	static void average_4_half(uint16_t &p_out, const uint16_t &p_a, const uint16_t &p_b, const uint16_t &p_c, const uint16_t &p_d, const bool& p_is_alpha);
-	static void average_4_rgbe9995(uint32_t &p_out, const uint32_t &p_a, const uint32_t &p_b, const uint32_t &p_c, const uint32_t &p_d, const bool& p_is_alpha);
+	static void average_4_uint8(uint8_t &p_out, const uint8_t &p_a, const uint8_t &p_b, const uint8_t &p_c, const uint8_t &p_d);
+	static void average_4_float(float &p_out, const float &p_a, const float &p_b, const float &p_c, const float &p_d);
+	static void average_4_half(uint16_t &p_out, const uint16_t &p_a, const uint16_t &p_b, const uint16_t &p_c, const uint16_t &p_d);
+	static void average_4_rgbe9995(uint32_t &p_out, const uint32_t &p_a, const uint32_t &p_b, const uint32_t &p_c, const uint32_t &p_d);
 	static void renormalize_uint8(uint8_t *p_rgb);
 	static void renormalize_float(float *p_rgb);
 	static void renormalize_half(uint16_t *p_rgb);
