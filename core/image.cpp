@@ -1453,6 +1453,9 @@ Error Image::generate_mipmaps(bool p_renormalize) {
 
 	PoolVector<uint8_t>::Write wp = data.write();
 
+	const int initial_ofs = 0;
+	const int initial_h = height;
+	const int initial_w = width;
 	int prev_ofs = 0;
 	int prev_h = height;
 	int prev_w = width;
@@ -1588,6 +1591,11 @@ void Image::create(int p_width, int p_height, bool p_use_mipmaps, Format p_forma
 
 void Image::create(int p_width, int p_height, bool p_use_mipmaps, Format p_format, const PoolVector<uint8_t> &p_data) {
 
+	create(p_width, p_height, p_use_mipmaps, p_format, p_data, 1000);
+}
+
+void Image::create(int p_width, int p_height, bool p_use_mipmaps, Format p_format, const PoolVector<uint8_t> &p_data, const int p_max_mipmaps) {
+
 	ERR_FAIL_INDEX(p_width - 1, MAX_WIDTH);
 	ERR_FAIL_INDEX(p_height - 1, MAX_HEIGHT);
 
@@ -1601,6 +1609,7 @@ void Image::create(int p_width, int p_height, bool p_use_mipmaps, Format p_forma
 	format = p_format;
 	data = p_data;
 	mipmaps = p_use_mipmaps;
+	max_mipmaps = p_max_mipmaps;
 }
 
 void Image::create(const char **p_xpm) {

@@ -187,6 +187,8 @@ public:
 
 	virtual void texture_set_data(RID p_texture, const Ref<Image> &p_image, int p_level = 0) = 0;
 
+	virtual void texture_set_max_mipmaps(RID p_texture, int p_map_mipmaps) = 0;
+
 	virtual void texture_set_data_partial(RID p_texture,
 			const Ref<Image> &p_image,
 			int src_x, int src_y,
@@ -196,6 +198,7 @@ public:
 			int p_level = 0) = 0;
 
 	virtual Ref<Image> texture_get_data(RID p_texture, int p_level = 0) const = 0;
+	virtual int  texture_get_max_mipmaps(RID p_texture) const = 0;
 	virtual void texture_set_flags(RID p_texture, uint32_t p_flags) = 0;
 	virtual uint32_t texture_get_flags(RID p_texture) const = 0;
 	virtual Image::Format texture_get_format(RID p_texture) const = 0;

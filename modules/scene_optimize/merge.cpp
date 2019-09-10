@@ -219,7 +219,7 @@ void MeshMergeMaterialRepack::generate_atlas(const int32_t p_num_meshes, PoolVec
 			mesh_count++;
 		}
 	}
-	pack_options.padding = 4;
+	pack_options.padding = 32;
 	pack_options.texelsPerUnit = 1.0f;
 	pack_options.maxChartSize = 4096;
 	pack_options.blockAlign = true;
@@ -473,6 +473,7 @@ Node *MeshMergeMaterialRepack::output(Node *p_root, xatlas::Atlas *atlas, Vector
 	if (atlas->width != 0 || atlas->height != 0) {
 		Ref<ImageTexture> texture;
 		texture.instance();
+		texture->set_max_mipmaps(5);
 		texture->create_from_image(target_image);
 		mat->set_texture(SpatialMaterial::TEXTURE_ALBEDO, texture);
 		mat->set_name("Atlas");

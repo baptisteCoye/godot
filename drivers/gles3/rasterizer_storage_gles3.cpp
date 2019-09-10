@@ -691,7 +691,8 @@ void RasterizerStorageGLES3::texture_allocate(RID p_texture, int p_width, int p_
 	texture->srgb = srgb;
 	texture->data_size = 0;
 	texture->mipmaps = 1;
-
+	texture->max_mipmaps = 1000;
+	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(texture->target, texture->tex_id);
 
@@ -950,8 +951,9 @@ void RasterizerStorageGLES3::texture_set_data(RID p_texture, const Ref<Image> &p
 		//generate mipmaps if they were requested and the image does not contain them
 		glGenerateMipmap(texture->target);
 	} else if (mipmaps > 1) {
+
 		glTexParameteri(texture->target, GL_TEXTURE_BASE_LEVEL, 0);
-		glTexParameteri(texture->target, GL_TEXTURE_MAX_LEVEL, mipmaps - 1);
+		glTexParameteri(texture->target, GL_TEXTURE_MAX_LEVEL, MIN(mipmaps, texture->max_mipmaps) - 1);
 	} else {
 		glTexParameteri(texture->target, GL_TEXTURE_BASE_LEVEL, 0);
 		glTexParameteri(texture->target, GL_TEXTURE_MAX_LEVEL, 0);
@@ -1522,6 +1524,21 @@ void RasterizerStorageGLES3::texture_debug_usage(List<VS::TextureInfo> *r_info) 
 		tinfo.bytes = t->total_data_size;
 		r_info->push_back(tinfo);
 	}
+}
+
+void RasterizerStorageGLES3::texture_set_max_mipmaps(RID p_texture, int p_max_mipmaps) {
+
+	Texture *texture = texture_owner.get(p_texture);
+	ERR_FAIL_COND(!texture);
+
+	texture->max_mipmaps = p_max_mipmaps;
+}
+
+int RasterizerStorageGLES3::texture_get_max_mipmaps(RID p_texture) const {
+	Texture *texture = texture_owner.get(p_texture);
+	ERR_FAIL_COND_V(!texture, 1000);
+
+	return texture->max_mipmaps;
 }
 
 void RasterizerStorageGLES3::texture_set_shrink_all_x2_on_set_data(bool p_enable) {

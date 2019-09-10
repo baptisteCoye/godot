@@ -257,6 +257,7 @@ public:
 		bool srgb;
 
 		int mipmaps;
+		int max_mipmaps;
 
 		bool resize_to_po2;
 
@@ -295,6 +296,7 @@ public:
 				ignore_mipmaps(false),
 				compressed(false),
 				mipmaps(0),
+				max_mipmaps(1000),
 				resize_to_po2(false),
 				active(false),
 				tex_id(0),
@@ -340,7 +342,9 @@ public:
 	virtual void texture_allocate(RID p_texture, int p_width, int p_height, int p_depth_3d, Image::Format p_format, VS::TextureType p_type, uint32_t p_flags = VS::TEXTURE_FLAGS_DEFAULT);
 	virtual void texture_set_data(RID p_texture, const Ref<Image> &p_image, int p_layer = 0);
 	virtual void texture_set_data_partial(RID p_texture, const Ref<Image> &p_image, int src_x, int src_y, int src_w, int src_h, int dst_x, int dst_y, int p_dst_mip, int p_layer = 0);
+	virtual void texture_set_max_mipmaps(RID p_texture, int p_max_mipmaps);
 	virtual Ref<Image> texture_get_data(RID p_texture, int p_layer = 0) const;
+	virtual int texture_get_max_mipmaps(RID p_texture) const;
 	virtual void texture_set_flags(RID p_texture, uint32_t p_flags);
 	virtual uint32_t texture_get_flags(RID p_texture) const;
 	virtual Image::Format texture_get_format(RID p_texture) const;

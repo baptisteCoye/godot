@@ -166,12 +166,14 @@ private:
 	PoolVector<uint8_t> data;
 	int width, height;
 	bool mipmaps;
+	int max_mipmaps;
 
 	void _copy_internals_from(const Image &p_image) {
 		format = p_image.format;
 		width = p_image.width;
 		height = p_image.height;
 		mipmaps = p_image.mipmaps;
+		max_mipmaps = p_image.max_mipmaps;
 		data = p_image.data;
 	}
 
@@ -248,6 +250,7 @@ public:
 	 */
 	void create(int p_width, int p_height, bool p_use_mipmaps, Format p_format);
 	void create(int p_width, int p_height, bool p_use_mipmaps, Format p_format, const PoolVector<uint8_t> &p_data);
+	void create(int p_width, int p_height, bool p_use_mipmaps, Format p_format, const PoolVector<uint8_t> &p_data, const int p_max_mipmaps);
 
 	void create(const char **p_xpm);
 	/**
@@ -361,6 +364,7 @@ public:
 		width = p_image->width;
 		height = p_image->height;
 		mipmaps = p_image->mipmaps;
+		max_mipmaps = p_image->max_mipmaps;
 		data = p_image->data;
 	}
 

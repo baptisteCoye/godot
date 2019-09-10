@@ -69,7 +69,7 @@ public:
 	virtual bool is_pixel_opaque(int p_x, int p_y) const;
 
 	virtual bool has_alpha() const = 0;
-
+	
 	virtual void set_flags(uint32_t p_flags) = 0;
 	virtual uint32_t get_flags() const = 0;
 
@@ -134,6 +134,10 @@ public:
 	Error load(const String &p_path);
 #endif
 	void set_data(const Ref<Image> &p_image);
+
+	void set_max_mipmaps(int p_max_mipmaps);
+	int get_max_mipmaps() const;
+
 	Ref<Image> get_data() const;
 
 	int get_width() const;
@@ -208,7 +212,7 @@ public:
 	static TextureFormatRequestCallback request_3d_callback;
 	static TextureFormatRequestCallback request_srgb_callback;
 	static TextureFormatRequestCallback request_normal_callback;
-
+	
 	uint32_t get_flags() const;
 	Image::Format get_format() const;
 	Error load(const String &p_path);

@@ -254,6 +254,16 @@ void ImageTexture::set_data(const Ref<Image> &p_image) {
 	image_stored = true;
 }
 
+void ImageTexture::set_max_mipmaps(int p_max_mipmaps) {
+	VisualServer::get_singleton()->texture_set_max_mipmaps(texture, p_max_mipmaps);
+
+	_change_notify();
+}
+
+int ImageTexture::get_max_mipmaps() const {
+	return VisualServer::get_singleton()->texture_get_max_mipmaps(texture);
+}
+
 void ImageTexture::_resource_path_changed() {
 
 	String path = get_path();
@@ -394,7 +404,7 @@ void ImageTexture::_set_data(Dictionary p_data) {
 
 	set_storage(Storage(p_data["storage"].operator int()));
 	set_lossy_storage_quality(p_data["lossy_quality"]);
-
+	set_max_mipmaps(p_data["mipmaps"]);
 	set_size_override(p_data["size"]);
 };
 
@@ -407,6 +417,8 @@ void ImageTexture::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("load", "path"), &ImageTexture::load);
 #endif
 	ClassDB::bind_method(D_METHOD("set_data", "image"), &ImageTexture::set_data);
+	ClassDB::bind_method(D_METHOD("set_max_mipmaps", "max_mipmaps"), &ImageTexture::set_max_mipmaps);
+	ClassDB::bind_method(D_METHOD("get_max_mipmaps"), &ImageTexture::get_max_mipmaps); 
 	ClassDB::bind_method(D_METHOD("set_storage", "mode"), &ImageTexture::set_storage);
 	ClassDB::bind_method(D_METHOD("get_storage"), &ImageTexture::get_storage);
 	ClassDB::bind_method(D_METHOD("set_lossy_storage_quality", "quality"), &ImageTexture::set_lossy_storage_quality);
@@ -416,6 +428,7 @@ void ImageTexture::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_reload_hook", "rid"), &ImageTexture::_reload_hook);
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "storage", PROPERTY_HINT_ENUM, "Uncompressed,Compress Lossy,Compress Lossless"), "set_storage", "get_storage");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "mipmaps", PROPERTY_HINT_RANGE, "0, 1000"), "set_max_mipmaps", "get_max_mipmaps");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "lossy_quality", PROPERTY_HINT_RANGE, "0.0,1.0,0.01"), "set_lossy_storage_quality", "get_lossy_storage_quality");
 
 	BIND_ENUM_CONSTANT(STORAGE_RAW);

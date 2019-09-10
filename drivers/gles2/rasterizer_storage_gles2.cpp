@@ -760,6 +760,8 @@ void RasterizerStorageGLES2::texture_set_data_partial(RID p_texture, const Ref<I
 	ERR_PRINT("Not implemented (ask Karroffel to do it :p)");
 }
 
+void RasterizerStorageGLES2::texture_set_max_mipmaps(RID p_texture, int p_max_mipmaps) {}
+
 Ref<Image> RasterizerStorageGLES2::texture_get_data(RID p_texture, int p_layer) const {
 
 	Texture *texture = texture_owner.getornull(p_texture);
@@ -883,6 +885,11 @@ Ref<Image> RasterizerStorageGLES2::texture_get_data(RID p_texture, int p_layer) 
 	return Ref<Image>(img);
 
 #endif
+}
+
+int RasterizerStorageGLES2::texture_get_max_mipmaps(RID p_texture) const {
+
+	return 1000;
 }
 
 void RasterizerStorageGLES2::texture_set_flags(RID p_texture, uint32_t p_flags) {
