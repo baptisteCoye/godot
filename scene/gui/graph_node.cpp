@@ -142,7 +142,7 @@ void GraphNode::_resort() {
 	}
 
 	int vofs = 0;
-	int w = get_size().x - sb->get_minimum_size().x;
+	int w = get_minimum_size().x - sb->get_minimum_size().x;
 
 	cache_y.clear();
 	for (int i = 0; i < get_child_count(); i++) {
@@ -169,14 +169,15 @@ void GraphNode::_resort() {
 bool GraphNode::has_point(const Point2 &p_point) const {
 
 	if (comment) {
-		Ref<StyleBox> comment = get_stylebox("comment");
+		Ref<StyleBox> comment = get_stylebox(selected ? "commentfocus" : "comment");
+		;
 		Ref<Texture> resizer = get_icon("resizer");
 
-		if (Rect2(get_size() - resizer->get_size(), resizer->get_size()).has_point(p_point)) {
+		if (Rect2(get_minimum_size() - resizer->get_size(), resizer->get_size()).has_point(p_point)) {
 			return true;
 		}
 
-		if (Rect2(0, 0, get_size().width, comment->get_margin(MARGIN_TOP)).has_point(p_point)) {
+		if (Rect2(0, 0, get_minimum_size().width, comment->get_margin(MARGIN_TOP)).has_point(p_point)) {
 			return true;
 		}
 
@@ -202,8 +203,6 @@ void GraphNode::_notification(int p_what) {
 				sb = get_stylebox(selected ? "selectedframe" : "frame");
 			}
 
-			//sb=sb->duplicate();
-			//sb->call("set_modulate",modulate);
 			Ref<Texture> port = get_icon("port");
 			Ref<Texture> close = get_icon("close");
 			Ref<Texture> resizer = get_icon("resizer");
@@ -215,11 +214,9 @@ void GraphNode::_notification(int p_what) {
 			int title_offset = get_constant("title_offset");
 			int title_h_offset = get_constant("title_h_offset");
 			Color title_color = get_color("title_color");
-			Point2i icofs = -port->get_size() * 0.5;
 			int edgeofs = get_constant("port_offset");
-			icofs.y += sb->get_margin(MARGIN_TOP);
 
-			draw_style_box(sb, Rect2(Point2(), get_size()));
+			draw_style_box(sb, Rect2(Point2(), get_minimum_size()));
 
 			switch (overlay) {
 				case OVERLAY_DISABLED: {
@@ -227,29 +224,29 @@ void GraphNode::_notification(int p_what) {
 				} break;
 				case OVERLAY_BREAKPOINT: {
 
-					draw_style_box(get_stylebox("breakpoint"), Rect2(Point2(), get_size()));
+					draw_style_box(get_stylebox("breakpoint"), Rect2(Point2(), get_minimum_size()));
 				} break;
 				case OVERLAY_POSITION: {
-					draw_style_box(get_stylebox("position"), Rect2(Point2(), get_size()));
+					draw_style_box(get_stylebox("position"), Rect2(Point2(), get_minimum_size()));
 
 				} break;
 			}
 
-			int w = get_size().width - sb->get_minimum_size().x;
-
+			int w = get_minimum_size().width - get_stylebox("frame")->get_minimum_size().x;
 			if (show_close)
 				w -= close->get_width();
 
-			draw_string(title_font, Point2(sb->get_margin(MARGIN_LEFT) + title_h_offset, -title_font->get_height() + title_font->get_ascent() + title_offset), title, title_color, w);
+			draw_string(title_font, Point2(get_stylebox("frame")->get_margin(MARGIN_LEFT) + title_h_offset, -title_font->get_height() + title_font->get_ascent() + title_offset), title, title_color, w);
 			if (show_close) {
-				Vector2 cpos = Point2(w + sb->get_margin(MARGIN_LEFT) + close_h_offset, -close->get_height() + close_offset);
+				Vector2 cpos = Point2(w + get_stylebox("frame")->get_margin(MARGIN_LEFT) + close_h_offset, -close->get_height() + close_offset);
 				draw_texture(close, cpos, close_color);
 				close_rect.position = cpos;
 				close_rect.size = close->get_size();
 			} else {
 				close_rect = Rect2();
 			}
-
+			Point2i icofs = -port->get_size() * 0.5;
+			icofs.y += get_stylebox("frame")->get_margin(MARGIN_TOP);
 			for (Map<int, Slot>::Element *E = slot_info.front(); E; E = E->next()) {
 
 				if (E->key() < 0 || E->key() >= cache_y.size())
@@ -270,12 +267,12 @@ void GraphNode::_notification(int p_what) {
 					if (s.custom_slot_right.is_valid()) {
 						p = s.custom_slot_right;
 					}
-					p->draw(get_canvas_item(), icofs + Point2(get_size().x - edgeofs, cache_y[E->key()]), s.color_right);
+					p->draw(get_canvas_item(), icofs + Point2(get_minimum_size().x - edgeofs, cache_y[E->key()]), s.color_right);
 				}
 			}
 
 			if (resizable) {
-				draw_texture(resizer, get_size() - resizer->get_size(), resizer_color);
+				draw_texture(resizer, get_minimum_size() - resizer->get_size(), resizer_color);
 			}
 		} break;
 
@@ -374,6 +371,7 @@ Size2 GraphNode::get_minimum_size() const {
 
 	int sep = get_constant("separation");
 	Ref<StyleBox> sb = get_stylebox("frame");
+
 	bool first = true;
 
 	Size2 minsize;
@@ -497,7 +495,7 @@ void GraphNode::_connpos_update() {
 			}
 			if (slot_info[idx].enable_right) {
 				ConnCache cc;
-				cc.pos = Point2i(get_size().width - edgeofs, y + h / 2);
+				cc.pos = Point2i(get_minimum_size().width - edgeofs, y + h / 2);
 				cc.type = slot_info[idx].type_right;
 				cc.color = slot_info[idx].color_right;
 				conn_output_cache.push_back(cc);
@@ -608,11 +606,11 @@ void GraphNode::_gui_input(const Ref<InputEvent> &p_ev) {
 
 			Ref<Texture> resizer = get_icon("resizer");
 
-			if (resizable && mpos.x > get_size().x - resizer->get_width() && mpos.y > get_size().y - resizer->get_height()) {
+			if (resizable && mpos.x > get_minimum_size().x - resizer->get_width() && mpos.y > get_minimum_size().y - resizer->get_height()) {
 
 				resizing = true;
 				resizing_from = mpos;
-				resizing_from_size = get_size();
+				resizing_from_size = get_minimum_size();
 				accept_event();
 				return;
 			}

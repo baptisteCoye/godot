@@ -49,6 +49,8 @@
 #define MAKE_DEFAULT_FONT(m_name, m_size)                       \
 	Ref<DynamicFont> m_name;                                    \
 	m_name.instance();                                          \
+	m_name->set_use_mipmaps(true);                              \
+	m_name->set_use_filter(true);                               \
 	m_name->set_size(m_size);                                   \
 	if (CustomFont.is_valid()) {                                \
 		m_name->set_font_data(CustomFont);                      \
@@ -56,13 +58,15 @@
 	} else {                                                    \
 		m_name->set_font_data(DefaultFont);                     \
 	}                                                           \
-	m_name->set_spacing(DynamicFont::SPACING_TOP, -EDSCALE);    \
-	m_name->set_spacing(DynamicFont::SPACING_BOTTOM, -EDSCALE); \
+	m_name->set_spacing(DynamicFont::SPACING_TOP, -p_scale);    \
+	m_name->set_spacing(DynamicFont::SPACING_BOTTOM, -p_scale); \
 	MAKE_FALLBACKS(m_name);
 
 #define MAKE_BOLD_FONT(m_name, m_size)                          \
 	Ref<DynamicFont> m_name;                                    \
 	m_name.instance();                                          \
+	m_name->set_use_mipmaps(true);                              \
+	m_name->set_use_filter(true);                               \
 	m_name->set_size(m_size);                                   \
 	if (CustomFontBold.is_valid()) {                            \
 		m_name->set_font_data(CustomFontBold);                  \
@@ -70,13 +74,15 @@
 	} else {                                                    \
 		m_name->set_font_data(DefaultFontBold);                 \
 	}                                                           \
-	m_name->set_spacing(DynamicFont::SPACING_TOP, -EDSCALE);    \
-	m_name->set_spacing(DynamicFont::SPACING_BOTTOM, -EDSCALE); \
+	m_name->set_spacing(DynamicFont::SPACING_TOP, -p_scale);    \
+	m_name->set_spacing(DynamicFont::SPACING_BOTTOM, -p_scale); \
 	MAKE_FALLBACKS(m_name);
 
 #define MAKE_SOURCE_FONT(m_name, m_size)                        \
 	Ref<DynamicFont> m_name;                                    \
 	m_name.instance();                                          \
+	m_name->set_use_mipmaps(true);                              \
+	m_name->set_use_filter(true);                               \
 	m_name->set_size(m_size);                                   \
 	if (CustomFontSource.is_valid()) {                          \
 		m_name->set_font_data(CustomFontSource);                \
@@ -84,11 +90,11 @@
 	} else {                                                    \
 		m_name->set_font_data(dfmono);                          \
 	}                                                           \
-	m_name->set_spacing(DynamicFont::SPACING_TOP, -EDSCALE);    \
-	m_name->set_spacing(DynamicFont::SPACING_BOTTOM, -EDSCALE); \
+	m_name->set_spacing(DynamicFont::SPACING_TOP, -p_scale);    \
+	m_name->set_spacing(DynamicFont::SPACING_BOTTOM, -p_scale); \
 	MAKE_FALLBACKS(m_name);
 
-void editor_register_fonts(Ref<Theme> p_theme) {
+void editor_register_fonts(Ref<Theme> p_theme, float p_scale) {
 	DirAccess *dir = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
 
 	/* Custom font */
@@ -226,8 +232,7 @@ void editor_register_fonts(Ref<Theme> p_theme) {
 	dfmono->set_antialiased(font_antialiased);
 	dfmono->set_hinting(font_hinting);
 	dfmono->set_font_ptr(_font_Hack_Regular, _font_Hack_Regular_size);
-
-	int default_font_size = int(EDITOR_GET("interface/editor/main_font_size")) * EDSCALE;
+	int default_font_size = int(EDITOR_GET("interface/editor/main_font_size")) * p_scale;
 
 	// Default font
 	MAKE_DEFAULT_FONT(df, default_font_size);
@@ -239,31 +244,32 @@ void editor_register_fonts(Ref<Theme> p_theme) {
 	p_theme->set_font("bold", "EditorFonts", df_bold);
 
 	// Title font
-	MAKE_BOLD_FONT(df_title, default_font_size + 2 * EDSCALE);
+	MAKE_BOLD_FONT(df_title, default_font_size + 8);
 	p_theme->set_font("title", "EditorFonts", df_title);
 
 	// Documentation fonts
-	MAKE_DEFAULT_FONT(df_doc, int(EDITOR_GET("text_editor/help/help_font_size")) * EDSCALE);
-	MAKE_BOLD_FONT(df_doc_bold, int(EDITOR_GET("text_editor/help/help_font_size")) * EDSCALE);
-	MAKE_BOLD_FONT(df_doc_title, int(EDITOR_GET("text_editor/help/help_title_font_size")) * EDSCALE);
-	MAKE_SOURCE_FONT(df_doc_code, int(EDITOR_GET("text_editor/help/help_source_font_size")) * EDSCALE);
+	MAKE_DEFAULT_FONT(df_doc, int(EDITOR_GET("text_editor/help/help_font_size")) * p_scale);
+	MAKE_BOLD_FONT(df_doc_bold, int(EDITOR_GET("text_editor/help/help_font_size")) * p_scale);
+	MAKE_BOLD_FONT(df_doc_title, int(EDITOR_GET("text_editor/help/help_title_font_size")) * p_scale);
+	MAKE_SOURCE_FONT(df_doc_code, int(EDITOR_GET("text_editor/help/help_source_font_size")) * p_scale);
+
 	p_theme->set_font("doc", "EditorFonts", df_doc);
 	p_theme->set_font("doc_bold", "EditorFonts", df_doc_bold);
 	p_theme->set_font("doc_title", "EditorFonts", df_doc_title);
 	p_theme->set_font("doc_source", "EditorFonts", df_doc_code);
 
 	// Ruler font
-	MAKE_DEFAULT_FONT(df_rulers, 8 * EDSCALE);
+	MAKE_DEFAULT_FONT(df_rulers, 8 * p_scale);
 	p_theme->set_font("rulers", "EditorFonts", df_rulers);
 
 	// Code font
-	MAKE_SOURCE_FONT(df_code, int(EDITOR_GET("interface/editor/code_font_size")) * EDSCALE);
+	MAKE_SOURCE_FONT(df_code, int(EDITOR_GET("interface/editor/code_font_size")) * p_scale);
 	p_theme->set_font("source", "EditorFonts", df_code);
 
-	MAKE_SOURCE_FONT(df_expression, (int(EDITOR_GET("interface/editor/code_font_size")) - 1) * EDSCALE);
+	MAKE_SOURCE_FONT(df_expression, int(EDITOR_GET("interface/editor/code_font_size")) - 1);
 	p_theme->set_font("expression", "EditorFonts", df_expression);
 
-	MAKE_SOURCE_FONT(df_output_code, int(EDITOR_GET("run/output/font_size")) * EDSCALE);
+	MAKE_SOURCE_FONT(df_output_code, int(EDITOR_GET("run/output/font_size")) * p_scale);
 	p_theme->set_font("output_source", "EditorFonts", df_output_code);
 
 	MAKE_SOURCE_FONT(df_text_editor_status_code, default_font_size);
