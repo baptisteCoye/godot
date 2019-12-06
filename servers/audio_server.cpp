@@ -61,6 +61,7 @@ void AudioDriver::set_singleton() {
 }
 
 void AudioDriver::audio_server_process(int p_frames, int32_t *p_buffer, bool p_update_mix_time) {
+    ZoneScoped;
 	TracyPlot("Audio Output Latency", AudioServer::get_singleton()->get_output_latency());	
 	if (p_update_mix_time)
 		update_mix_time(p_frames);
@@ -229,7 +230,7 @@ AudioDriver *AudioDriverManager::get_driver(int p_driver) {
 //////////////////////////////////////////////
 
 void AudioServer::_driver_process(int p_frames, int32_t *p_buffer) {
-
+    ZoneScoped;
 	int todo = p_frames;
 
 #ifdef DEBUG_ENABLED
@@ -295,7 +296,7 @@ void AudioServer::_driver_process(int p_frames, int32_t *p_buffer) {
 }
 
 void AudioServer::_mix_step() {
-
+    ZoneScoped;
 	bool solo_mode = false;
 
 	for (int i = 0; i < buses.size(); i++) {
@@ -514,7 +515,7 @@ int AudioServer::thread_find_bus_index(const StringName &p_name) {
 }
 
 void AudioServer::set_bus_count(int p_count) {
-
+    ZoneScoped;
 	ERR_FAIL_COND(p_count < 1);
 	ERR_FAIL_INDEX(p_count, 256);
 
@@ -618,7 +619,7 @@ void AudioServer::add_bus(int p_at_pos) {
 				break;
 			}
 		}
-
+ZoneScoped
 		if (!name_free) {
 			attempts++;
 			attempt = "New Bus " + itos(attempts);

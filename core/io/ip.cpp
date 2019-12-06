@@ -33,7 +33,7 @@
 #include "core/hash_map.h"
 #include "core/os/semaphore.h"
 #include "core/os/thread.h"
-
+#include "thirdparty/tracy/Tracy.hpp"
 VARIANT_ENUM_CAST(IP::ResolverStatus);
 
 /************* RESOLVER ******************/
@@ -93,7 +93,7 @@ struct _IP_ResolverPrivate {
 	}
 
 	static void _thread_function(void *self) {
-
+        ZoneScopedN("Ip_thread_function")
 		_IP_ResolverPrivate *ipr = (_IP_ResolverPrivate *)self;
 
 		while (!ipr->thread_abort) {

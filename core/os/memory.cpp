@@ -36,30 +36,33 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "thirdparty/tracy/Tracy.hpp"
 
 void *operator new(size_t p_size, const char *p_description) {
-
-	return Memory::alloc_static(p_size, false);
+    auto ptr = Memory::alloc_static(p_size, false);
+    TracyAllocS(ptr, p_size, 5);
+    return ptr;
 }
 
 void *operator new(size_t p_size, void *(*p_allocfunc)(size_t p_size)) {
-
-	return p_allocfunc(p_size);
+    auto ptr = p_allocfunc(p_size);
+    TracyAllocS(ptr, p_size, 5);
+    return ptr;
 }
 
 #ifdef _MSC_VER
 void operator delete(void *p_mem, const char *p_description) {
-
+    TracyFreeS(p_mem);
 	CRASH_NOW_MSG("Call to placement delete should not happen.");
 }
 
 void operator delete(void *p_mem, void *(*p_allocfunc)(size_t p_size)) {
-
+    TracyFreeS(p_mem);
 	CRASH_NOW_MSG("Call to placement delete should not happen.");
 }
 
 void operator delete(void *p_mem, void *p_pointer, size_t check, const char *p_description) {
-
+    TracyFreeS(p_mem);
 	CRASH_NOW_MSG("Call to placement delete should not happen.");
 }
 #endif

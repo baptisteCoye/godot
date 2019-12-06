@@ -33,13 +33,14 @@
 #include "core/method_bind_ext.gen.inc"
 #include "core/print_string.h"
 #include "core/project_settings.h"
+#include "thirdparty/tracy/Tracy.hpp"
 
 PhysicsServer *PhysicsServer::singleton = NULL;
 
 void PhysicsDirectBodyState::integrate_forces() {
-
-	real_t step = get_step();
-	Vector3 lv = get_linear_velocity();
+    ZoneScoped;
+    real_t step = get_step();
+    Vector3 lv = get_linear_velocity();
 	lv += get_total_gravity() * step;
 
 	Vector3 av = get_angular_velocity();
@@ -62,7 +63,7 @@ void PhysicsDirectBodyState::integrate_forces() {
 }
 
 Object *PhysicsDirectBodyState::get_contact_collider_object(int p_contact_idx) const {
-
+    ZoneScoped;
 	ObjectID objid = get_contact_collider_id(p_contact_idx);
 	Object *obj = ObjectDB::get_instance(objid);
 	return obj;
@@ -261,7 +262,7 @@ PhysicsShapeQueryParameters::PhysicsShapeQueryParameters() {
 /////////////////////////////////////
 
 Dictionary PhysicsDirectSpaceState::_intersect_ray(const Vector3 &p_from, const Vector3 &p_to, const Vector<RID> &p_exclude, uint32_t p_collision_mask, bool p_collide_with_bodies, bool p_collide_with_areas) {
-
+    ZoneScoped;
 	RayResult inters;
 	Set<RID> exclude;
 	for (int i = 0; i < p_exclude.size(); i++)
@@ -284,7 +285,7 @@ Dictionary PhysicsDirectSpaceState::_intersect_ray(const Vector3 &p_from, const 
 }
 
 Array PhysicsDirectSpaceState::_intersect_shape(const Ref<PhysicsShapeQueryParameters> &p_shape_query, int p_max_results) {
-
+    ZoneScoped;
 	ERR_FAIL_COND_V(!p_shape_query.is_valid(), Array());
 
 	Vector<ShapeResult> sr;
@@ -306,7 +307,7 @@ Array PhysicsDirectSpaceState::_intersect_shape(const Ref<PhysicsShapeQueryParam
 }
 
 Array PhysicsDirectSpaceState::_cast_motion(const Ref<PhysicsShapeQueryParameters> &p_shape_query, const Vector3 &p_motion) {
-
+    ZoneScoped;
 	ERR_FAIL_COND_V(!p_shape_query.is_valid(), Array());
 
 	float closest_safe, closest_unsafe;
@@ -320,7 +321,7 @@ Array PhysicsDirectSpaceState::_cast_motion(const Ref<PhysicsShapeQueryParameter
 	return ret;
 }
 Array PhysicsDirectSpaceState::_collide_shape(const Ref<PhysicsShapeQueryParameters> &p_shape_query, int p_max_results) {
-
+    ZoneScoped;
 	ERR_FAIL_COND_V(!p_shape_query.is_valid(), Array());
 
 	Vector<Vector3> ret;
@@ -791,7 +792,8 @@ PhysicsServer *PhysicsServerManager::new_default_server() {
 }
 
 PhysicsServer *PhysicsServerManager::new_server(const String &p_name) {
-	int id = find_server_id(p_name);
+    ZoneScoped;
+    int id = find_server_id(p_name);
 	if (id == -1) {
 		return NULL;
 	} else {

@@ -28,6 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
+#include "thirdparty/tracy/Tracy.hpp"
 #include "os_x11.h"
 #include "detect_prime.h"
 
@@ -2091,7 +2092,7 @@ void OS_X11::_window_changed(XEvent *event) {
 }
 
 void OS_X11::process_xevents() {
-
+    ZoneScopedS(5);
 	//printf("checking events %i\n", XPending(x11_display));
 
 	do_mouse_warp = false;

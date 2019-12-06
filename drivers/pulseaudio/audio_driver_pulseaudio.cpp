@@ -34,6 +34,7 @@
 
 #include "core/os/os.h"
 #include "core/project_settings.h"
+#include "thirdparty/tracy/Tracy.hpp"
 
 void AudioDriverPulseAudio::pa_state_cb(pa_context *c, void *userdata) {
 	AudioDriverPulseAudio *ad = (AudioDriverPulseAudio *)userdata;
@@ -323,7 +324,7 @@ float AudioDriverPulseAudio::get_latency() {
 }
 
 void AudioDriverPulseAudio::thread_func(void *p_udata) {
-
+    ZoneScopedN("Audio_thread_function");
 	AudioDriverPulseAudio *ad = (AudioDriverPulseAudio *)p_udata;
 	unsigned int write_ofs = 0;
 	size_t avail_bytes = 0;

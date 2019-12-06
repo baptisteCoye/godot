@@ -32,6 +32,8 @@
 
 #include "core/os/os.h"
 #include "core/project_settings.h"
+#include "thirdparty/tracy/Tracy.hpp"
+
 
 const char *AudioDriverXAudio2::get_name() const {
 	return "XAudio2";
@@ -54,7 +56,7 @@ Error AudioDriverXAudio2::init() {
 	buffer_size = closest_power_of_2(latency * mix_rate / 1000);
 
 	samples_in = memnew_arr(int32_t, buffer_size * channels);
-	for (int i = 0; i < AUDIO_BUFFERS; i++) {
+	for (int i = 0; i < AUDIOTask_BUFFERS; i++) {
 		samples_out[i] = memnew_arr(int16_t, buffer_size * channels);
 		xaudio_buffer[i].AudioBytes = buffer_size * channels * sizeof(int16_t);
 		xaudio_buffer[i].pAudioData = (const BYTE *)(samples_out[i]);
@@ -86,7 +88,7 @@ Error AudioDriverXAudio2::init() {
 }
 
 void AudioDriverXAudio2::thread_func(void *p_udata) {
-
+    ZoneScopedS(4);
 	AudioDriverXAudio2 *ad = (AudioDriverXAudio2 *)p_udata;
 
 	while (!ad->exit_thread) {
